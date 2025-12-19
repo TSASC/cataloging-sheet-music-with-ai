@@ -1,0 +1,470 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/haironghe03/ai-cataloging/blob/main/Helen_25_10_17_Sheet_Music_Cataloging_Script.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "b2dae2cf"
+      },
+      "source": [
+        "## Feature Updates\n",
+        "\n",
+        "### New features 2024/12/17: Added fifth column: image name. An image will always appear as a row in the output even if they are skipped.\n",
+        "\n",
+        "### New features 2025/10/17: Frontloaded all user settings to the first cell. Program can run with no need to modify anything in any other cells than the first one."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "IHnajuixTbfS"
+      },
+      "source": [
+        "Installation and set up"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 15,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "p5swdWiaTh_M",
+        "outputId": "f22894c5-807d-4932-c0f1-1754f172494f"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: openai in /usr/local/lib/python3.12/dist-packages (1.109.1)\n",
+            "Collecting xlsxwriter\n",
+            "  Downloading xlsxwriter-3.2.9-py3-none-any.whl.metadata (2.7 kB)\n",
+            "Requirement already satisfied: pandas in /usr/local/lib/python3.12/dist-packages (2.2.2)\n",
+            "Requirement already satisfied: anyio<5,>=3.5.0 in /usr/local/lib/python3.12/dist-packages (from openai) (4.11.0)\n",
+            "Requirement already satisfied: distro<2,>=1.7.0 in /usr/local/lib/python3.12/dist-packages (from openai) (1.9.0)\n",
+            "Requirement already satisfied: httpx<1,>=0.23.0 in /usr/local/lib/python3.12/dist-packages (from openai) (0.28.1)\n",
+            "Requirement already satisfied: jiter<1,>=0.4.0 in /usr/local/lib/python3.12/dist-packages (from openai) (0.11.0)\n",
+            "Requirement already satisfied: pydantic<3,>=1.9.0 in /usr/local/lib/python3.12/dist-packages (from openai) (2.11.10)\n",
+            "Requirement already satisfied: sniffio in /usr/local/lib/python3.12/dist-packages (from openai) (1.3.1)\n",
+            "Requirement already satisfied: tqdm>4 in /usr/local/lib/python3.12/dist-packages (from openai) (4.67.1)\n",
+            "Requirement already satisfied: typing-extensions<5,>=4.11 in /usr/local/lib/python3.12/dist-packages (from openai) (4.15.0)\n",
+            "Requirement already satisfied: numpy>=1.26.0 in /usr/local/lib/python3.12/dist-packages (from pandas) (2.0.2)\n",
+            "Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/dist-packages (from pandas) (2.9.0.post0)\n",
+            "Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.12/dist-packages (from pandas) (2025.2)\n",
+            "Requirement already satisfied: tzdata>=2022.7 in /usr/local/lib/python3.12/dist-packages (from pandas) (2025.2)\n",
+            "Requirement already satisfied: idna>=2.8 in /usr/local/lib/python3.12/dist-packages (from anyio<5,>=3.5.0->openai) (3.11)\n",
+            "Requirement already satisfied: certifi in /usr/local/lib/python3.12/dist-packages (from httpx<1,>=0.23.0->openai) (2025.10.5)\n",
+            "Requirement already satisfied: httpcore==1.* in /usr/local/lib/python3.12/dist-packages (from httpx<1,>=0.23.0->openai) (1.0.9)\n",
+            "Requirement already satisfied: h11>=0.16 in /usr/local/lib/python3.12/dist-packages (from httpcore==1.*->httpx<1,>=0.23.0->openai) (0.16.0)\n",
+            "Requirement already satisfied: annotated-types>=0.6.0 in /usr/local/lib/python3.12/dist-packages (from pydantic<3,>=1.9.0->openai) (0.7.0)\n",
+            "Requirement already satisfied: pydantic-core==2.33.2 in /usr/local/lib/python3.12/dist-packages (from pydantic<3,>=1.9.0->openai) (2.33.2)\n",
+            "Requirement already satisfied: typing-inspection>=0.4.0 in /usr/local/lib/python3.12/dist-packages (from pydantic<3,>=1.9.0->openai) (0.4.2)\n",
+            "Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.12/dist-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)\n",
+            "Downloading xlsxwriter-3.2.9-py3-none-any.whl (175 kB)\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m175.3/175.3 kB\u001b[0m \u001b[31m4.4 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25hInstalling collected packages: xlsxwriter\n",
+            "Successfully installed xlsxwriter-3.2.9\n",
+            "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\n"
+          ]
+        }
+      ],
+      "source": [
+        "!pip install openai xlsxwriter pandas\n",
+        "\n",
+        "from openai import OpenAI\n",
+        "import os\n",
+        "import csv\n",
+        "import base64\n",
+        "import pandas as pd # Added import for excel functionality\n",
+        "\n",
+        "from google.colab import userdata\n",
+        "OPENAI_API_KEY=userdata.get('OPENAI_API_KEY')\n",
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')\n",
+        "\n",
+        "API_KEY = OPENAI_API_KEY\n",
+        "\n",
+        "folder_path = \"/content/drive/MyDrive/TAWA LOWERRE CONTENTS NOTE & AI PROJECT/AI Project/Run/2011TW-1029/2011TW-1029_2\"  # NB: MODIFY BASED ON THE DRIVE PATH IN YOUR COMPUTER WHERE YOU WANT IMAGES READ FROM\n",
+        "folder_name = os.path.basename(folder_path)\n",
+        "csv_file = os.path.join('/content/drive/My Drive', f\"output_{folder_name}.csv\")  #NB: Modify to where you want csv output to be stored and what name.\n",
+        "xlsx_file = os.path.join('/content/drive/My Drive', f\"Output_{folder_name}.xlsx\")  #NB: Modify to where you want xlsx output to be stored and what name.\n",
+        "\n",
+        "# Standard sheet music columns: 'Title', 'Statement of responsibility', 'Edition', 'City', 'Publisher name', 'Address', 'Plate number', 'Date', 'Image name'\n",
+        "csv_columns = ['theater', 'date', 'title', 'Image name'] #NB: Modify to the column information you need to extract from the images.\n",
+        "\n",
+        "#NB: Feel free to store as many prompts below (with unique names); Prompt used in run is selected in cell 2\n",
+        "\n",
+        "prompt_text = (\"You are an archivist working on creating structured data from an image.\"\n",
+        "\"You will need to manually transcribe the data from the images, and only from the images.\"\n",
+        "\"You will extract the information from the image and present it as a JSON object with four fields: 'theater', 'date', 'title', 'image name'.\"\n",
+        "\"Please don't use markdown to present the result.\"\n",
+        "\"Use ISBD punctuation and RDA (Resource Description & Access) capitalization rules, specific to the German language. For instance, initials and acronyms are to be transcribed without internal spaces, regardless of how they are presented on the image. For example, 'F.K.E. Kennedy', NOT 'F. K. E. Kennedy'. \"\n",
+        "\"Your response should only contain the data requested. No additional explanation and no extra information. Only transcribe information which is directly stated in the scan. Do not add any outside information, speculation, or generative text. Stick strictly to the text presented in the scan. If you cannot read, or cannot correctly transcribe something, you may return a result of '[illegible]'. \"\n",
+        "\"Do not use superscript at any time. \"\n",
+        "\"These are programs from related theaters in Vienna, in 1878. The programs typically present two shows each: a program for the K.K. Hof-Burgtheater on the left panel, and a program for the K.K. Hof-Operntheater on the right panel. You will transcribe the information as requested, beginning with the left-hand panel, ending with the right-hand panel. The fonts vary but are often Fraktur: please transcribe any Fraktur into modern Roman type. Some information presented may be in a Viennese dialect of German: transcribe it as you find it, do not correct it. \"\n",
+        "\"Ignore any statement of coming attractions. \"\n",
+        "\"First extract the 'theater' field. The theater name is typically printed above the program panel, at the top of either side of the page. With very few exceptions, the 'K.K. Hof-Burgtheater' will be found at the head of the left panel, and the 'K.K. Hof-Operntheater' will be at the head of the right panel. When there are two panels, extract both theater names in the order they appear, left to right, separated by ' ; '. \"\n",
+        "\"Second extract the 'date' field, which is often found directly below the theater header on either panel, and often takes this format: 'Dinstag den 1. Jänner 1878'. Extract the date as you find it, in dialect if necessary. DO NOT include the starting time, which would be a phrase beginning with 'Anfang ...' and DO NOT correct any dialect listings into modern German. If this date is the same in both panels, only extract it once. \"\n",
+        "\"Third extract the title and statement of responsibility into a single field: the 'title' field is typically presented in bold face, and will include a subtitle indicating the number of acts, and a statement of responsibility. Separate the subtitles from the title with this punctuation: ' : ' and separate the statements of responsibility from the subtitles with this punctuation: ' / '. Often you will discover two or more performances listed on the same panel: these additional titles, subtitles, and statements of responsibility should be transcribed in successive order at the end of the 'title' field, separated by this punctuation: ' ; '. When there are two panels, transcribe all 'title' information listed on the left panel as instructed, first, then transcribe all title information listed on the right panel, next, separated by ' ; '. If you encounter an opera or play which is originally in another language with a different standard title, please supply the original title in square brackets after the title but before the subtitle. For instance: 'Don Juan [Don Giovanni]''. If you are unsure as to the original title, simply supply empty square brackets '[]' to indicate that a title has clearly been translated. \"\n",
+        "\"Capitalization should follow the appropriate usage for the German language, so nouns should always be capitalized, etc. \"\n",
+        "\"Finally, please format the output as a JSON object with keys: 'theater', 'date', 'title', 'image name' .\")\n",
+        "\n",
+        "prompt = prompt_text #NB: Select the prompt which you want to use in this run\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "yRk--Z2cLMFV"
+      },
+      "source": [
+        "Define Function to Get Image Information using the OpenAI API"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 9,
+      "metadata": {
+        "id": "rLIMwaTwQDaW"
+      },
+      "outputs": [],
+      "source": [
+        "import requests\n",
+        "import json\n",
+        "import base64\n",
+        "from PIL import Image\n",
+        "\n",
+        "def encode_image(path):\n",
+        "    rgb_image = Image.open(path)\n",
+        "    out_path = \"output.jpeg\"\n",
+        "    rgb_image.save(out_path, format=\"JPEG\")\n",
+        "\n",
+        "    with open(out_path, \"rb\") as image_file:\n",
+        "        return base64.b64encode(image_file.read()).decode('utf-8')\n",
+        "\n",
+        "def image_to_text(image_path):\n",
+        "    \"\"\"\n",
+        "    Converts an image to text using OpenAI's API.\n",
+        "\n",
+        "    Parameter:\n",
+        "    - image_path: The path to the image file.\n",
+        "    \"\"\"\n",
+        "\n",
+        "    # Function to encode the image to base64\n",
+        "    base64_image = encode_image(image_path)\n",
+        "\n",
+        "    # Define the API endpoint\n",
+        "    url = 'https://go.apis.huit.harvard.edu/ais-openai-direct/v1/chat/completions'\n",
+        "\n",
+        "    # Set the headers\n",
+        "    headers = {\n",
+        "        'Content-Type': 'application/json',\n",
+        "        'api-key': API_KEY\n",
+        "    }\n",
+        "\n",
+        "    # Create the payload\n",
+        "    data = {\n",
+        "        \"model\": \"gpt-4o\",\n",
+        "        \"messages\":     [\n",
+        "      {\n",
+        "        \"role\": \"user\",\n",
+        "        \"content\": [\n",
+        "          {\n",
+        "            \"type\": \"text\",\n",
+        "            \"text\": prompt\n",
+        "          },\n",
+        "          {\n",
+        "            \"type\": \"image_url\",\n",
+        "            \"image_url\": {\n",
+        "              \"url\": f\"data:image/jpeg;base64,{base64_image}\"\n",
+        "            }\n",
+        "          }\n",
+        "        ]\n",
+        "      }\n",
+        "    ],\n",
+        "        \"max_tokens\": 3000\n",
+        "    }\n",
+        "\n",
+        "    # print(data)\n",
+        "\n",
+        "    # Make the POST request\n",
+        "    response = requests.post(url, headers=headers, json=data)\n",
+        "\n",
+        "    # Check if the request was successful\n",
+        "    if response.status_code != 200:\n",
+        "        print(f\"API request failed with status code {response.status_code}: {response.text}\")\n",
+        "        return None\n",
+        "\n",
+        "    try:\n",
+        "        response_data = response.json()\n",
+        "        content = response_data['choices'][0]['message']['content']\n",
+        "    except Exception as e:\n",
+        "        print(\"Failed to decode response:\")\n",
+        "        print(response.text)\n",
+        "        raise e\n",
+        "\n",
+        "    return content"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "i0x5FEpcGqTn"
+      },
+      "source": [
+        "List Image Files in the Google Drive Folder and Prepare CSV File for Output"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 10,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5T1_RX8zGwNH",
+        "outputId": "85dbc39e-ceff-4a4a-bb12-183e9abebc95"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['IMG_2025_10_01_10_23_09S.jpg', 'IMG_2025_10_01_10_23_39S.jpg', 'IMG_2025_10_01_10_23_58S.jpg', 'IMG_2025_10_01_10_24_15S.jpg', 'IMG_2025_10_01_10_24_39S.jpg', 'IMG_2025_10_01_10_24_53S.jpg', 'IMG_2025_10_01_10_25_15S.jpg', 'IMG_2025_10_01_10_26_07S.jpg', 'IMG_2025_10_01_10_28_21S.jpg', 'IMG_2025_10_01_10_28_33S.jpg', 'IMG_2025_10_01_10_28_44S.jpg', 'IMG_2025_10_01_10_29_03S.jpg', 'IMG_2025_10_01_10_29_21S.jpg', 'IMG_2025_10_01_10_29_31S.jpg', 'IMG_2025_10_01_10_30_40S.jpg', 'IMG_2025_10_01_10_30_52S.jpg', 'IMG_2025_10_01_10_31_02S.jpg', 'IMG_2025_10_01_10_31_13S.jpg', 'IMG_2025_10_01_10_31_56S.jpg', 'IMG_2025_10_01_10_32_16S.jpg', 'IMG_2025_10_01_10_32_29S.jpg', 'IMG_2025_10_01_10_32_49S.jpg', 'IMG_2025_10_01_10_33_03S.jpg', 'IMG_2025_10_01_10_33_15S.jpg', 'IMG_2025_10_01_10_34_17S.jpg']\n"
+          ]
+        }
+      ],
+      "source": [
+        "# List all image files in the folder\n",
+        "image_files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]\n",
+        "\n",
+        "# Sort the image paths by their filenames (natural sort order)\n",
+        "image_files.sort(key=lambda x: os.path.basename(x))\n",
+        "\n",
+        "print(image_files)\n",
+        "\n",
+        "# Extract the folder name from folder_path\n",
+        "folder_name = os.path.basename(folder_path)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "onazjjD8LxHI"
+      },
+      "source": [
+        "Loop through each image file, extract information using the OpenAI API, and write the data to the CSV file."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 11,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "agvDc2jSLxma",
+        "outputId": "ea3ccb23-2263-4ace-e785-cec19b17f92b"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Processing image 1: IMG_2025_10_01_10_23_09S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater\",\n",
+            "\"date\": \"Freitag den 1. Februar 1878\",\n",
+            "\"title\": \"Eine Laune : Lustspiel in einem Akt / Alfred de Musset ; Man muß nichts verschwören : Lustspiel in drei Akten nach Alfred de Musset (Il ne faut jurer de rien) für die deutsche Bühne bearbeitet von Lili Kaulser.\",\n",
+            "\"image name\": \"theater_program_1878_feb_01.jpg\"\n",
+            "}\n",
+            "Processing image 2: IMG_2025_10_01_10_23_39S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Samstag den 2. Februar 1878\",\"title\":\"Eine vornehme Ehe : Schauspiel in fünf Aufzügen und einem Vorspiele / nach Octave Feuillet ; Aida [Aida] : Oper in vier Akten / Text von A. Ghislanzoni ; für die deutsche Bühne bearbeitet von F. Schanz ; Musik von Giuseppe Verdi\",\"image name\":\"theater_program_2_Februar_1878.png\"}\n",
+            "Processing image 3: IMG_2025_10_01_10_23_58S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Sonntag den 3. Februar 1878\",\n",
+            "\"title\": \"Die beiden Klingsberg : Lustspiel in vier Aufzügen von Koscheu / ; Das Rheingold : Vorspiel zu der Trilogie 'Der Ring des Nibelungen' in zwei Abtheilungen von Richard Wagner /\",\n",
+            "\"image name\": \"Vienna_Theater_Program_1878.jpg\"\n",
+            "}\n",
+            "Processing image 4: IMG_2025_10_01_10_24_15S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Montag den 4. Februar 1878\",\"title\":\"Eine Kriegslist : Lustspiel in einem Akt / von Eduard Mautner ; Die Verlassenen : Aufspiel in einem Akt / von Bauernfeld ; Der Schimmel : Aufspiel in einem Akt / von G.S. Moser ; Robert der Teufel [Robert le diable] : Große romantische Oper in fünf Akten / Musik von Meyerbeer\",\"image name\":\"theater_program_1878.png\"}\n",
+            "Processing image 5: IMG_2025_10_01_10_24_39S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Dinstag den 5. Februar 1878\",\"title\":\"Der Kuß : Lustspiel in vier Aufzügen und einem Vorspiele aus dem Ungarischen / des L. Doczi ; Lohengrin : Romantische Oper in drei Akten / von Richard Wagner\",\"image name\":\"K.K. Hof-Burgtheater_Operntheater_18780205.jpg\"}\n",
+            "Processing image 6: IMG_2025_10_01_10_24_53S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Mittwoch den 6. Februar 1878\",\n",
+            "\"title\": \"Blinder Lärm : Lustspiel in einem Akt nach dem Französischen des Max de Groot / F. Sonntag... ; Mädchenschwüre : Lustspiel in drei Akten nach dem Polnischen des Grafen Fredro von G.von Moser / F. Strassmann... ; Norma : Oper in zwei Akten von Romani, übersetzt von J.v.d. Tscherfke [Norma] / Musik von Bellini ; Ellinor : Phantastisches Ballet von Paul Taglioni / Musik von W. Hertel und F. Doppler\",\n",
+            "\"image name\": \"theater_program_6_feb_1878.jpg\"\n",
+            "}\n",
+            "Processing image 7: IMG_2025_10_01_10_25_15S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Donnerstag den 7. Februar 1878\",\n",
+            "\"title\": \"Blinder Lärm : Aufspiel in einem Akt nach dem Französischen des Max de Groot / [illegible] ; Mädchenschwüre : Aufspiel in drei Akten nach dem Possindigen des Grafen Fredro von G.v. Moser / [illegible] ; Das Rheingold [Das Rheingold] : Vorspiel zu der Trilogie 'Der Ring des Nibelungen' in zwei Abtheilungen von Richard Wagner / [illegible]\",\n",
+            "\"image name\": \"burg_oper_theater_18780207.jpg\"\n",
+            "}\n",
+            "Processing image 8: IMG_2025_10_01_10_26_07S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Samstag den 9. Februar 1878\",\"title\":\"Der Königsleutnant : Lustspiel in vier Aufzügen / von Karl Gustav ; Der Wasserträger : Oper in drei Abtheilungen, frei nach 'Les deux journees' des Bouilly / von G. F. Treitschke ; Sylvia die Nymphe der Diana : Mythologisches Ballet in zwei Abtheilungen auf das Théâtre Lyrique zu Paris und die große Oper zu Berlin / erste Abtheilung und Pas Russe von M. Hans v. Wälzl, zweite Abtheilung von J. Hassreiter, Compositionen von Léo Delibes und Ludwig Minkus, zweite Abtheilung Tänze / von Karl Zeller\",\"image name\":\"theater_program_vienna_1878.png\"}\n",
+            "Processing image 9: IMG_2025_10_01_10_28_21S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Sonntag den 10. Feber 1878\",\"title\":\"Die Räuber : Trauerspiel in fünf Akten von Schiller / []; Armida : Große Oper in fünf Aufzügen, Text nach dem französischen des Quinault, Musik von Gluck / Hr. J. Hoff-Cremnitz engirtadirt von P. Cifer ; Reformirte Tänze und Gruppirungen von Paul Taglioni : Erstes Divertissement / []; Tanz der Kärse : Aus 'Malektoe', Pas seul / Frl. Śchöfer ; Zweiter Akt : Tanz der Schäfer : Mailied ; Tanz der Karyatiden : Ballett-Giocoso : Tanz der Fluren : Erster Akt ; Tanz der Furien : Allegorisch ; Pas de cinq: Die Brünnen. Die Schäfer /[] ; Die dritte u. letzte Hofopern-Soirée (Ball) : in auf Allerhöchst gegebener Bewilligung daselbst veranstaltet / []\",\"image name\":\"program_image.jpg\"}\n",
+            "Processing image 10: IMG_2025_10_01_10_28_33S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Montag den 11. Februar 1878\",\"title\":\"Blinder Lärm : Lustspiel in einem Akt nach dem Französischen des Mag de Gros / [illegible] ; Mädchenschwüre : Lustspiel in drei Akten nach dem Polnischen des Erzten Freih. von G. v. Moser / [illegible] ; Die Hugenotten [Les Huguenots] : Große Oper in 4 Akten, nach dem Französischen des Scribe / Musik von Meyerbeer\",\"image name\":\"theater_program_11_februar_1878.jpg\"}\n",
+            "Processing image 11: IMG_2025_10_01_10_28_44S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Dinstag den 12. Februar 1878\",\n",
+            "\"title\": \"Doktor Wespe : Lustspiel in fünf Aufzügen von Friedrich Hopp ; Der fliegende Holländer [Der fliegende Holländer] : Romantische Oper in drei Akten von Richard Wagner\",\n",
+            "\"image name\": \"[illegible]\"\n",
+            "}\n",
+            "Processing image 12: IMG_2025_10_01_10_29_03S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater\",\"date\":\"Mittwoch den 13. Februar 1878\",\"title\":\"Ein Schritt vom Wege : Lustspiel in vier Akten / von Ernst Wichert\",\"image name\":\"program-feb13-1878.jpg\"}\n",
+            "Processing image 13: IMG_2025_10_01_10_29_21S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Donnerstag den 14. Februar 1878\",\n",
+            "\"title\": \"Blinder Lärm : Lustspiel in Einem Akt nach dem Französischen des Max de Groot / []; Mädchenschwüre : Lustspiel in drei Akten nach dem Polnischen des Grafen Fredro von G.v. Moser / [] ; Die Königin von Saba : Oper in vier Akten von Mosenthal. Musik von Karl Goldmark. / []\",\n",
+            "\"image name\": \"Burgtheater_Operntheater_18780214.jpg\"\n",
+            "}\n",
+            "Processing image 14: IMG_2025_10_01_10_29_31S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Freitag den 15. Februar 1878\",\"title\":\"Moderne Jugend : Lustspiel in drei Akten / von Bauernfeld ; Die weisse Frau : Oper in drei Akten [La Dame Blanche] / Nach dem Französischen Scribé, von J.F. Castelli / Musik von Boieldieu. Rococo : Tanz-Divertissement in einem Akt / von G. Taglioni\",\"image name\":\"theater_program_18780215\"}\n",
+            "Processing image 15: IMG_2025_10_01_10_30_40S.jpg\n",
+            "Debug: Raw API response text {\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\": \"Samstag den 16. Februar 1878\",\"title\": \"Feenhände : Aufspiel in fünf Akten, nach Crècios „Les doigts de fée“ bearbeitet von E. H. Gansmann / [illegible]; Das Rheingold : Vorspiel zu der Trilogie „Der Ring des Nibelungen“ in zwei Abtheilungen von Richard Wagner\",\"image name\": \"theater_program_18780216.png\"}\n",
+            "Processing image 16: IMG_2025_10_01_10_30_52S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Sonntag den 17. Februar 1878\",\n",
+            "\"title\": \"Kabale und Liebe : Trauerspiel in fünf Aufzügen von Schiller / Frl. Reischl, vom Stadttheater zu Leipzig, erste Gastrolle. ; Armida : Große Oper in fünf Aufzügen [Armide] von Gluck für das K.K. Hof-Operntheater eingerichtet von H. Eibler / Neu in Scene gesetzt ; Erste und zweite Tänze mit Gruppierungen von Paul Taglioni / Dritte Tänze der Nymphen / Armida's Erscheinungen\",\n",
+            "\"image name\": \"[illegible]\"\n",
+            "}\n",
+            "Processing image 17: IMG_2025_10_01_10_31_02S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Montag den 18. Februar 1878\",\n",
+            "\"title\": \"Der zerbrochene Krug : Lustspiel in einem Acte / von Heinrich Kleist ; Der Geizige : Lustspiel in fünf Acten / von Molière, für die deutsche Bühne neu übersetzt und bearbeitet von Franz Dingelstedt ; Der Profet : Oper in fünf Acten / von Meyerbeer\",\n",
+            "\"image name\": \"opera-theater-program-18-februar-1878.jpg\"\n",
+            "}\n",
+            "Processing image 18: IMG_2025_10_01_10_31_13S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Dienstag den 19. Februar 1878\",\"title\":\"Der letzte Brief : Lustspiel in drei Acten / von Sardou ; Don Juan [Don Giovanni] : Große Oper in zwei Akten nach dem Italienischen des Da Ponte / Musik von Mozart ; Die Makkabäer : Eine Oper in vier Acten\",\"image name\":\"theater_program_vienna_1878\"}\n",
+            "Processing image 19: IMG_2025_10_01_10_31_56S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater\",\"date\":\"Mittwoch den 20. Februar 1878\",\"title\":\"Egmont : Trauerspiel in fünf Aufzügen von Goethe. Musik von Beethoven / ; Clärchen / Frl. Weissely, vom Stadttheater zu Leipzig, zweite Gastrolle.\",\"image name\":\"egmont_k_k_hof_burgtheater_18780220\"}\n",
+            "Processing image 20: IMG_2025_10_01_10_32_16S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Freitag den 22. Februar 1878\",\"title\":\"Der Königsleutnant : Lustspiel in drei Aufzügen / von Karl Gustrow ; AIDA [Aida] : Oper in vier Akten. Text von A. Ghislanzoni / Musik von Giuseppe Verdi\",\"image name\":\"theater_program_1878_02_22.jpg\"}\n",
+            "Processing image 21: IMG_2025_10_01_10_32_29S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Samstag den 23. Februar 1878\",\n",
+            "\"title\": \"Doktor Wespe : Lustspiel in fünf Aufzügen / von Roderich Benedix ; Dritte und letzte Hofopern-Soirée (Ball)\",\n",
+            "\"image name\": \"theater_program_1878.jpg\"\n",
+            "}\n",
+            "Processing image 22: IMG_2025_10_01_10_32_49S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Montag den 25. Februar 1878\",\"title\":\"Die Eine weint die Andre lacht : Schauspiel in vier Akten von Dumanoir und Séraillon / Frau Meyer, Frau ihrer Tochter ; Jeanne Arnoult, brave, schützerische Kraft der Frau Rey ; Maurice Reyer, Advokat ; Bidaut, Notar ; Braun, Ratsschief bei Bidaut ; Paul, Schreiber bei Bidaut ; Veniuier, Diener der Frau Rey ; Terc Conspeient Bidauts; Die Mördergrube : Lustspiel in einem Akte, nach Odobro und Delordau ; Doktor Kritofolo ; Pantolon, Kaufmann aus Bologna ; Nelo, sein Sohn ; Auftragte ; Querrico der Doktors Emilain ; Flabiale, des Doktors Mitglied ; Colombine, Hausmadchen im Haude des Doktors ; Lucrezja Borgia [Lucrezia Borgia] : Oper in drei Akten aus dem Italienischen von F. Romani / Musik von Donizetti ; Don Alphonso, Herzog von Ferrara ; Lucrezja Borgia, deren Gemalin ; Gen/CD. ; Maffio Orsini ; Guberto Reist detto ; CEFI ; Driff; DE Dominis ; Horrera ; Hocked ; Kamilum ; oder der Zauberlehrling ; Jannuit ; Robiné ; Rikard ; Wiece ; Neplfano ; Pantorid ; Adaskes ; Pieullas ; Hernole ; Pondows ; Tomne ; Globs ; Nato ; Wolf ; Pirara ; Seolander; Die Tänzerin auf Reisen : Komisches Divertissement in einem Aufzuge von M. Hoguet / Musik von verschiedenen Componisten ; Mademoiselle Gabrielle, Tänzerin ; Louente, ihr Haushofmeister ; Dolouny, ihr Streiter ; Frau Diavolo\",\"image name\":\"program_feb_25_1878\"}\n",
+            "Processing image 23: IMG_2025_10_01_10_33_03S.jpg\n",
+            "Debug: Raw API response text {\n",
+            "\"theater\": \"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\n",
+            "\"date\": \"Dinstag den 26. Februar 1878\",\n",
+            "\"title\": \"Emilia Galotti : Trauerspiel in fünf Akten von Lessing / Frl. Reesfeld, vom Stadttheater zu Leipzig, fünfte Gastrolle ; Lohengrin : Romantische Oper in drei Akten von Richard Wagner / Dir. Marie Wilt, als erstes Debut\",\n",
+            "\"image name\": \"Vienna_1878_Program_Feb26\"\n",
+            "}\n",
+            "Processing image 24: IMG_2025_10_01_10_33_15S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Mittwoch den 27. Februar 1878\",\"title\":\"Faust : Tragödie in sechs Aufzügen von Goethe. Musik von verschiedenen Meistern, zusammgestellt von Julius Sulzer, K.K. Hofburgtheater-Kapellmeister / [Illegible] ; Wilhelm Tell : Heroisch-romantische Oper in vier Akten, nach Schiller, nach Text frei bearbeitet von Theodor G. Haupt. Musik von Rossini / [Illegible]\",\"image name\":\"K.K._Hofburgtheater_Operntheater_27_Februar_1878.jpg\"}\n",
+            "Processing image 25: IMG_2025_10_01_10_34_17S.jpg\n",
+            "Debug: Raw API response text {\"theater\":\"K.K. Hof-Burgtheater ; K.K. Hof-Operntheater\",\"date\":\"Donnerstag den 28. Februar 1878\",\"title\":\"Der Kuss : Schauspiel in vier Aufzügen und einem Vorspiele aus dem Ungarischen / O. Doczi ; Der häusliche Krieg : Oper in einem Akt / J. G. Schachtel ; Sylvia die Nymphe der Diane : Mythologisches Ballet in 3 Abtheilungen (5 Tableaux) / Jules Barbier und Louis Mérante\",\"image name\":\"program_vienna_18780228\"}\n",
+            "Information extracted and saved to /content/drive/My Drive/output_2011TW-1029_2.csv\n",
+            "Error converting CSV to Excel: name 'pd' is not defined\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Extract information and write to CSV\n",
+        "with open(csv_file, 'w', newline='') as csvfile:\n",
+        "    writer = csv.writer(csvfile)\n",
+        "    writer.writerow(csv_columns)\n",
+        "\n",
+        "    # Create a mapping from column name to index for easier assignment\n",
+        "    col_name_to_index = {name: index for index, name in enumerate(csv_columns)}\n",
+        "\n",
+        "    for index, image_file in enumerate(image_files):  # Added enumerate to get the index\n",
+        "        image_path = os.path.join(folder_path, image_file)\n",
+        "\n",
+        "        # Initialize row with empty strings based on the number of columns\n",
+        "        row = [\"\"] * len(csv_columns)\n",
+        "\n",
+        "\n",
+        "        print(f\"Processing image {index + 1}: {image_file}\")  # Now prints image index and name\n",
+        "        try:\n",
+        "            info = image_to_text(image_path)\n",
+        "\n",
+        "            # Debugging line\n",
+        "            print(\"Debug: Raw API response text\", info)\n",
+        "\n",
+        "            if info:\n",
+        "                try:\n",
+        "                    data = json.loads(info)\n",
+        "\n",
+        "                    # Assign data to the row using the column name to index mapping\n",
+        "                    for key, value in data.items():\n",
+        "                        if key in col_name_to_index:\n",
+        "                            row[col_name_to_index[key]] = value.strip()\n",
+        "\n",
+        "                    # Ensure the image file name is always assigned to the correct column\n",
+        "                    if 'Image name' in col_name_to_index:\n",
+        "                        row[col_name_to_index['Image name']] = image_file\n",
+        "\n",
+        "\n",
+        "                except json.JSONDecodeError as e:\n",
+        "                    print(f\"Error decoding JSON for image {image_file}: {e}\")\n",
+        "                except KeyError as e:\n",
+        "                    print(f\"Missing key in JSON response for image {image_file}: {e}\")\n",
+        "        except Exception as e:\n",
+        "            print(f\"An error occurred while processing image {image_file}: {e}\")\n",
+        "\n",
+        "\n",
+        "        writer.writerow(row)\n",
+        "\n",
+        "print(f'Information extracted and saved to {csv_file}')\n",
+        "\n",
+        "# Convert CSV to XLSX\n",
+        "try:\n",
+        "    # Read the CSV file\n",
+        "    df = pd.read_csv(csv_file)\n",
+        "\n",
+        "    # Use xlsxwriter for conversion\n",
+        "    with pd.ExcelWriter(xlsx_file, engine='xlsxwriter') as writer:\n",
+        "        df.to_excel(writer, index=False, sheet_name='Sheet1')\n",
+        "\n",
+        "    print(f'CSV successfully converted to Excel and saved to {xlsx_file}')\n",
+        "\n",
+        "except Exception as e:\n",
+        "    print(f'Error converting CSV to Excel: {e}')"
+      ]
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
