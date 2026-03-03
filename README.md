@@ -51,3 +51,43 @@ General things to keep in mind:
 ○	AI isn’t ready for complex catalog formatting (correct series title transcription remains a distant dream)
 ●	Analysis-based tasks like classing or assigning subject headings may be possible in future, but not with current online resources for reference
 
+# Documentation
+This documentation should guide you through the idiosyncracies of using this Colab code. You can use an overhead scanner like we did, or you can even use a phone camera (though we don’t recommend this: lots of wear and tear on your phone). However you plan to generate the scans which will be run through the program, create the highest resolution for the best results.
+
+Scanning:
+•	Create folder for collections in your local Pictures folder (if you cannot scan to a folder in Google Drive):
+•	Set up your scanner, check that all connections and settings are correct.
+•	Browse through your sheet music [or other items]: be aware of WHAT you are going to scan for the best results.
+•	Scan title pages into the local folder (unless you can scan them directly into a Google drive folder)
+•	When finished scanning box/folder, if you weren’t able to scan your images directly into a Google Drive folder, create, then navigate to a storage folder in Google shared drive, and upload your scans into a folder on Google Drive.
+•	FIRST TIME USERS OF COLAB CODE: CREATE A SEPARATE COPY OF THE COLAB FOR YOURSELF: File> Save as a copy in Drive, RENAME (close "release notes" if it opens). We used the naming protocol: ANDREA’S COPY OF … to keep different project and cataloger’s codes distinguished.
+o	To add API key, installation and setup: KEY icon on left
+o	ADD NEW SECRET:
+o	name: OPENAI_API_KEY
+o	value: [API]
+o	toggle under NOTEBOOK ACCESS, to enter/activate
+o	close SECRETS, upper right X
+o	ONCE YOU HAVE DONE ALL OF THIS, you can use the same "copy of ..." for each run, simply changing the scans address, updating prompt, and any other variables found in the first code cell
+•	Open your Colab code, is the prompt current? If not, check your Prompts documentation, and copy your current prompt or specific collection prompt.
+•	Check the Google Drive scan folder address, make sure it matches the address in the 1st code cell:
+•	Run 1st code cell:
+o	"Grant access" to secret code, if needed, then run again
+o	Allow access to Google drive, follow pop up windows
+o	what to access: SELECT ALL
+o	(If “drive mount” fails, stop and run 1st code cell again)
+o	(If any text in prompt turns black, this represents an error: hover over opening parens, see if there is a clue to what is wrong)
+o	Look for green check upper left, done updating 1st code cell
+•	Move on to 2nd code cell and run
+•	Move to 3rd cell, run. This cell will fail if you have used an incorrect GPT API, or if your scan location is incorrect.
+•	Run 4th cell:
+o	This will run the scans thru the Python code; you may follow its progress at the bottom of the cell
+o	When the run is finished, you will see a message something like this, and you will find these two spreadsheets in your Google Drive:
+	Information extracted and saved to /content/drive/My Drive/output_Lowerre_148.csv
+	CSV successfully converted to Excel and saved to /content/drive/My Drive/Output_Lowerre_148.xlsx
+o	If you have made code changes, save your Colab: FILE> Save
+•	NB: running the Colab will overwrite any older output folder in your Google drive of the same name, unless output name or location in code cell 1 is changed
+•	If all goes well, you will then have an output file in your Google Drive. Navigate to your drive, find “output_[foldername].csv”, OPEN WITH Google sheets, and proofread your transcribed metadata.
+•	Save your Google spreadsheet, or convert it to Excel!
+•	Prepare Excel spreadsheet for ingestion into ArchivesSpace, should this be part of your protocol.
+
+It is possible to run this code through a larger program, and factor in other programming. As part of our AOK grant, our student developed a “look-up” to search for publishing dates, for instance. This might be useful for a variety of other cataloging functions which aren’t covered in the Colab code.
