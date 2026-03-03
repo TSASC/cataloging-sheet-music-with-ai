@@ -1,11 +1,53 @@
 # cataloging-sheet-music-with-ai
 A process developed for our Advancing Open Knowledge grant, using a python script to extract cataloging metadata obtained from OCR-ed title page scans in ChatGPT, into Excel, for ingestion into finding aids. 
-# Support & Contact
-Email:
-DISCLAIMER: In no respect shall TSASC incur any liability for any damages, including, but limited to, direct, indirect, special, or consequential damages arising out of, resulting from, or any way connected to the use of the item, whether or not based upon warranty, contract, tort, or otherwise; whether or not injury was sustained by persons or property or otherwise; and whether or not loss was sustained from, or arose out of, the results of, the item, or any services that may be provided by TSASC.
+# Disclaimer
+In no respect shall TSASC incur any liability for any damages, including, but limited to, direct, indirect, special, or consequential damages arising out of, resulting from, or any way connected to the use of the item, whether or not based upon warranty, contract, tort, or otherwise; whether or not injury was sustained by persons or property or otherwise; and whether or not loss was sustained from, or arose out of, the results of, the item, or any services that may be provided by TSASC.
 # Getting started
 This code is created on the assumption that users will provide ONE scan per transcription/transliteration result. We scan the score title pages ourselves, then if we have the $$, we send the scans we used to the DRS to be linked to the ArchivesSpace object.
 You will need:
---Scans displaying identifiable metadata
---A ChatGPT API key. Contact HUIT (or your IT division) to arrange this
---Access to a Google drive, to upload this Colab python script, and to access scans to run through the code
+•	Scans displaying identifiable metadata
+•	A ChatGPT API key. Contact HUIT (or your IT division) to arrange this
+•	Access to a Google drive, to upload this Colab python script, and to access scans to run through the code
+# Prepare your prompt
+Effective prompts require three parts:
+•	Start with a description of the overall context
+•	Provide the steps of the request, detail by detail, preferably in a specified order
+•	Specify your output
+
+•	NB: as you craft a functional prompt, keep track of your iterations, with notes. (We used a Google doc, with a table of contents.)
+
+Here is a sample generic prompt, to give you place to start:
+
+("You are a cataloger creating structured data from an image."
+"You will need to manually transcribe the data from the images."
+"You will extract the information from the image and present it in three fields: title, statement_of_responsibility, and publication_info."
+"Do not number each extract. "
+"Do not stop to ask whether I want to add anything to a transcription, simply proceed with the next set of transcriptions until all uploaded scans have been completed."
+"Please don't use markdown to present the result."
+"Use ISBD punctuation and RDA (Resource Description & Access) capitalization rules."
+"Initials and acronyms are to be transcribed without internal spaces, regardless of how they are presented on the image. For example, 'F.K.E. Kennedy', NOT 'F. K. E. Kennedy'. "
+"Your response should only contain the data requested. No additional explanation and no extra information. Only transcribe information which is directly stated in the scan. Do not add any outside information, speculation, or generative text. Stick strictly to the text presented in the scan. If you cannot read, or cannot correctly transcribe something, you may return a result of '[illegible]' particularly for text in very small fonts. "
+"First extract the title. The title field should be COMPLETE, including subtitles. If the image has subtitles, please put a ' : ' between them and the title, such as 'Andante et mazurka : pour flûte avec accompagnement de piano'. "
+"Capitalization: only the first letter of the first word of each title or subtitle should be a capital even when the title has been changed from all caps, and the first letter of the first word of parallel titles, alternative titles, or section titles should also be a capital, again, even when the title has been changed from all caps. Other capitalization should follow the appropriate usage for the language used in the title. For instance, in German, be sure to capitalize nouns. "
+"Second, extract the statement_of_responsibility field, and you should also transcribe words like 'by', 'par', 'von', etc. exactly as found in the image. "
+"If you transcribe more than one statement of responsibility, please add a ' ; ' between them. "
+"Third, extract publication_info field, which should be in the format of 'Place of publication : publisher, date' and should include only ONE publisher, the most predominant one. "
+"If there is any kind of statement on the image with the word 'edition' or 'ed.' in it, in any language, please include this statement in the 'publication_info' before the 'Place of publication : publisher, date'. Please look carefully for these edition statements, as they can be found at the head of the title, anywhere within the main title information, or even at the foot of the page. "
+"If place of publication, or publisher, are not found, DO NOT SUPPLY. "
+"Finally, please format the output like this: ǂt 'title' / ǂr 'statement_of_responsibility'. ǂg 'publication_info' -- "
+"Here are some examples with the correct format:
+ǂt Phantasie : für das Piano Forte ... Op. 28 / ǂr componirt von Felix Mendelssohn Bartholdy. ǂg Bonn : H. Simrock, [1834?] 
+ǂt Le réveil des fées : étude pour piano ... op. 41 / ǂr par Émile Prudent. ǂg Bruxelles : Schott frères, [no date]
+ǂt Fort Mitchell polka / ǂr composed and arranged by Francis Rziha (leader of the Steyermarkische Co.). ǂg Philadelphia : E. Ferrett & Co., ©1849 -- ")
+
+NB: The output keys you choose must match exactly the fields specified in the Python code, including the case!!
+
+General things to keep in mind:
+●	AI works reasonably well for simple transcription and transliteration from scans but must be proofread, particularly as you are developing your prompt
+●	ChatGPT can identify titles, subtitles, statements of responsibility, and imprint metadata, most of the time, within the Harvard ChatGPT system
+●	AI works much better with letters than numbers:
+○	Dates and plate numbers must be carefully proofread
+●	Keep prompt demands simple!
+○	AI isn’t ready for complex catalog formatting (correct series title transcription remains a distant dream)
+●	Analysis-based tasks like classing or assigning subject headings may be possible in future, but not with current online resources for reference
+
