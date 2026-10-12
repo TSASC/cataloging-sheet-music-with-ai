@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Publisher Match | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Publisher Match Tester</h1>
+    <p class="page-subtitle">Test fuzzy matching against the IMSLP publisher list.</p>
+</div>
+
+<form method="POST">
+    <div class="form-group">
+        <label for="publisher">Publisher Name</label>
+        <input name="publisher" id="publisher" required placeholder="Enter publisher name">
+    </div>
+    <button type="submit">Check Match</button>
+</form>
+
+{% if match %}
+<div style="margin-top: var(--space-2xl);">
+    <h2>Match Found</h2>
+    <dl class="detail-list">
+        <div class="detail-item">
+            <dt>Original Name</dt>
+            <dd>{{ match.name }}</dd>
+        </div>
+        <div class="detail-item">
+            <dt>Normalized Input</dt>
+            <dd><code>{{ norm }}</code></dd>
+        </div>
+        <div class="detail-item">
+            <dt>IMSLP Link</dt>
+            <dd><a href="{{ match.href }}" target="_blank">{{ match.href }}</a></dd>
+        </div>
+        <div class="detail-item">
+            <dt>Address</dt>
+            <dd>{{ match.address }}</dd>
+        </div>
+        <div class="detail-item">
+            <dt>Year Range</dt>
+            <dd>{{ match.year_range }}</dd>
+        </div>
+    </dl>
+</div>
+{% elif norm %}
+<div style="margin-top: var(--space-2xl);">
+    <p><strong>Normalized:</strong> <code>{{ norm }}</code></p>
+    <p class="result-empty">No close match found in the IMSLP publisher table.</p>
+</div>
+{% endif %}
+{% endblock %}

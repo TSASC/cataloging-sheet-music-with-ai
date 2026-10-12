@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Excel Formula Generator{% endblock %}
+
+{% block content %}
+<div class="formula-generator">
+    <h1>Excel Formula Generator</h1>
+    <p class="description">
+        Generate Excel formulas for date range checking. Enter a cell reference (e.g., H24) and get a formula that checks for years 193-202.
+    </p>
+
+    <div class="form-container">
+        <form id="formulaForm" method="POST">
+            <div class="input-group">
+                <label for="cellReference">Cell Reference:</label>
+                <input
+                    type="text"
+                    id="cellReference"
+                    name="cellReference"
+                    placeholder="e.g., H24"
+                    pattern="[A-Z]+[0-9]+"
+                    title="Please enter a valid cell reference (e.g., A1, B2, H24)"
+                    required
+                >
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">Generate Formula</button>
+                <button type="button" id="resetBtn" class="btn btn-secondary">Reset</button>
+            </div>
+        </form>
+    </div>
+
+    {% if formula %}
+    <div class="result-container">
+        <h2>Generated Formula</h2>
+        <div class="formula-display">
+            <textarea id="formulaText" readonly>{{ formula }}</textarea>
+            <button id="copyBtn" class="btn btn-success">Copy to Clipboard</button>
+        </div>
+
+        <div class="formula-explanation">
+            <h3>What this formula does:</h3>
+            <ul>
+                <li>Checks if the cell contains any year from 193 to 202</li>
+                <li>Returns "R" if a year is found, empty string if not</li>
+                <li>Uses TEXT() function to ensure proper text conversion</li>
+                <li>Works with any cell reference you provide</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="examples">
+        <h3>Example Usage</h3>
+        <div class="example-grid">
+            <div class="example-item">
+                <strong>Input:</strong> H24<br>
+                <strong>Output:</strong> <code>=IF(OR(ISNUMBER(SEARCH("193",TEXT(H24,"@"))),ISNUMBER(SEARCH("194",TEXT(H24,"@"))),...),"R","")</code>
+            </div>
+            <div class="example-item">
+                <strong>Input:</strong> A1<br>
+                <strong>Output:</strong> <code>=IF(OR(ISNUMBER(SEARCH("193",TEXT(A1,"@"))),ISNUMBER(SEARCH("194",TEXT(A1,"@"))),...),"R","")</code>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formulaForm');
+    const resetBtn = document.getElementById('resetBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const formulaText = document.getElementById('formulaText');
+
+    // Reset functionality
+    resetBtn.addEventListener('click', function() {
+        document.getElementById('cellReference').value = '';
+        if (formulaText) {
+            formulaText.value = '';
+        }
+        const resultContainer = document.querySelector('.result-container');
+        if (resultContainer) {
+            resultContainer.style.display = 'none';
+        }
+    });
+
+    // Copy to clipboard functionality
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            formulaText.select();
+            formulaText.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                document.execCommand('copy');
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy to Clipboard';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                copyBtn.textContent = 'Failed to copy';
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy to Clipboard';
+                }, 2000);
+            }
+        });
+    }
+
+    // Auto-format cell reference input
+    const cellInput = document.getElementById('cellReference');
+    cellInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+});
+</script>
+{% endblock %}

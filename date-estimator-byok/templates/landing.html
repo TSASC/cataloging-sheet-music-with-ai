@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Date Estimator BYOK{% endblock %}
+
+{% block container_class %}landing-page{% endblock %}
+
+{% block content %}
+<div class="landing-hero">
+    <h1>Date Estimator BYOK</h1>
+    <p class="page-subtitle">Estimate music score publication dates using publisher metadata, plate numbers, and address clues from IMSLP.</p>
+</div>
+
+<div class="landing-featured">
+    <a href="/settings">
+        <span class="landing-featured-label">Local edition · Bring your own key</span>
+        <span class="landing-featured-title">Choose your transcription provider</span>
+        <span class="landing-featured-desc">No app account required. Images and prompts are sent to your selected provider; zero data retention is not guaranteed.</span>
+    </a>
+</div>
+
+<details class="landing-collapse" open>
+    <summary class="landing-collapse-trigger">Core Tools</summary>
+    <div class="landing-grid landing-grid-4">
+        <a href="/search" class="landing-item">
+            <span class="landing-item-title">Single Search</span>
+            <span class="landing-item-desc">Enter a publisher name, city, address, or plate number to estimate a publication date.</span>
+        </a>
+        <a href="/upload" class="landing-item">
+            <span class="landing-item-title">Bulk Upload</span>
+            <span class="landing-item-desc">Upload an Excel file to estimate dates for many entries at once.</span>
+        </a>
+        <a href="/image-transcription" class="landing-item">
+            <span class="landing-item-title">Image Transcription</span>
+            <span class="landing-item-desc">Extract bibliographic metadata from a single sheet music image using AI.</span>
+        </a>
+        <a href="/batch-transcription" class="landing-item">
+            <span class="landing-item-title">Batch Transcription</span>
+            <span class="landing-item-desc">Monitor a folder for images, transcribe in batches, then export as CSV or XLSX.</span>
+        </a>
+    </div>
+</details>
+
+<details class="landing-collapse">
+    <summary class="landing-collapse-trigger">Analysis &amp; Testing</summary>
+    <div class="landing-grid landing-grid-3">
+        <a href="/model-comparison" class="landing-item">
+            <span class="landing-item-title">Model Comparison</span>
+            <span class="landing-item-desc">Compare Harvard OpenAI and Harvard Gemini transcriptions across selected images.</span>
+        </a>
+        <a href="/test-match" class="landing-item">
+            <span class="landing-item-title">Publisher Match</span>
+            <span class="landing-item-desc">Test fuzzy matching against the IMSLP publisher list.</span>
+        </a>
+        <a href="/test-similarity" class="landing-item">
+            <span class="landing-item-title">Similarity Check</span>
+            <span class="landing-item-desc">Find publishers above a similarity threshold.</span>
+        </a>
+        <a href="/test-imprint" class="landing-item">
+            <span class="landing-item-title">Imprint Analysis</span>
+            <span class="landing-item-desc">Look up imprint date ranges from a publisher page.</span>
+        </a>
+        <a href="/test-address" class="landing-item">
+            <span class="landing-item-title">Address Parser</span>
+            <span class="landing-item-desc">Find matching addresses and date ranges.</span>
+        </a>
+        <a href="{{ url_for('view_tables') }}" class="landing-item">
+            <span class="landing-item-title">Plate Tables</span>
+            <span class="landing-item-desc">View plate number to year mapping tables.</span>
+        </a>
+        <a href="/formula-generator" class="landing-item">
+            <span class="landing-item-title">Formula Generator</span>
+            <span class="landing-item-desc">Generate Excel formulas for date range checking.</span>
+        </a>
+    </div>
+</details>
+
+<details class="landing-collapse">
+    <summary class="landing-collapse-trigger">Reference</summary>
+    <div class="landing-grid landing-grid-2">
+        <a href="/codebase_documentation" class="landing-item">
+            <span class="landing-item-title">Documentation</span>
+            <span class="landing-item-desc">Technical documentation for the codebase.</span>
+        </a>
+        <a href="https://imslp.org/wiki/IMSLP:Music_Publishers" target="_blank" class="landing-item">
+            <span class="landing-item-title">IMSLP Publisher Wiki</span>
+            <span class="landing-item-desc">The source publisher list on IMSLP.</span>
+        </a>
+    </div>
+</details>
+{% endblock %}

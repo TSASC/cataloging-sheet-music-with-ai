@@ -1,0 +1,30 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+uploads/
+.env
+
+# Log files
+logs/
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Generated output files
+output.jpeg
+
+# Flask session files (server-side session storage)
+flask_session/
+batch_results/
+
+# Local scratch / scraping artifacts
+cookies.txt
+
+# Data files (test data, generated files)
+*.xlsx

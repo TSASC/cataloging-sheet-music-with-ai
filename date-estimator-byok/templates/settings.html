@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Settings — Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Settings</h1>
+    <p class="page-subtitle">Bring your own API key and choose a transcription provider and model.</p>
+</div>
+
+<div class="alert alert-info">
+    Image transcription sends images and prompts to the selected provider. Model comparison sends them to each provider selected for comparison. This app does not guarantee zero data retention; check each provider's terms before sending sensitive material.
+</div>
+
+<div class="section-card">
+    <h2>Active Provider</h2>
+    <p>Choose the provider used for single-image and batch transcription.</p>
+    <form method="POST" action="{{ url_for('settings') }}">
+        <input type="hidden" name="action" value="set_active">
+        <div class="provider-selector">
+            {% for pid, pinfo in providers.items() %}
+            <label class="provider-option {{ 'active' if active_provider == pid }}">
+                <input type="radio" name="provider" value="{{ pid }}"
+                       {{ 'checked' if active_provider == pid }} required>
+                <div class="provider-option-content">
+                    <span class="provider-option-name">{{ pinfo.name }}</span>
+                    <span class="provider-option-desc">{{ pinfo.description }}</span>
+                </div>
+                {% if pid in masked_keys %}
+                <span class="key-badge key-badge-saved">Key saved</span>
+                {% endif %}
+            </label>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-accent">Use Selected Provider</button>
+    </form>
+</div>
+
+<div class="section-card">
+    <h2>Model</h2>
+    {% for pid, pinfo in providers.items() %}
+    {% if active_provider == pid %}
+    <form method="POST" action="{{ url_for('settings') }}">
+        <input type="hidden" name="action" value="set_model">
+        <input type="hidden" name="provider" value="{{ pid }}">
+        <div class="form-group">
+            <label for="active-model">{{ pinfo.name }} model</label>
+            <select id="active-model" name="model" class="form-input">
+                {% for mid, mname in pinfo.models.items() %}
+                <option value="{{ mid }}" {{ 'selected' if selected_models.get(pid) == mid }}>{{ mname }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-accent">Save Model</button>
+    </form>
+    {% endif %}
+    {% endfor %}
+</div>
+
+<div class="section-card">
+    <h2>API Keys</h2>
+    <p>Saved keys are encrypted in this computer's local server-side session. Sessions expire after 30 days, so you may need to enter keys again. There is no account or central key storage.</p>
+    <p>Your own keys in the local environment can also be used as fallbacks. Removing a saved key does not remove an environment key.</p>
+    <p>Harvard OpenAI and Harvard Gemini share the same Harvard key. These endpoints require your own authorized access.</p>
+    {% for pid, pinfo in providers.items() %}
+    <div class="key-entry {{ 'key-entry-active' if active_provider == pid }}">
+        <div class="key-entry-header">
+            <div>
+                <h3 class="key-entry-name">{{ pinfo.name }}</h3>
+                <span class="key-entry-desc">{{ pinfo.description }}</span>
+            </div>
+            <div class="key-entry-status">
+                {% if pid in masked_keys %}
+                <span class="status-dot status-saved"></span>
+                <span class="status-label">Saved: <code>{{ masked_keys[pid] }}</code></span>
+                {% else %}
+                <span class="status-dot status-none"></span>
+                <span class="status-label">No saved key</span>
+                {% endif %}
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('settings') }}" class="key-entry-form">
+            <input type="hidden" name="action" value="save_key">
+            <input type="hidden" name="provider" value="{{ pid }}">
+            <div class="key-input-row">
+                <label for="key-{{ pid }}" class="sr-only">{{ pinfo.name }} API key</label>
+                <input type="password" id="key-{{ pid }}" name="api_key" class="form-input"
+                       placeholder="{{ pinfo.placeholder }}" autocomplete="off" spellcheck="false" required>
+                <button type="submit" class="btn btn-accent btn-sm">{{ 'Replace' if pid in masked_keys else 'Save' }} Key</button>
+            </div>
+        </form>
+        {% if pid in masked_keys %}
+        <form method="POST" action="{{ url_for('settings') }}" class="key-entry-actions">
+            <input type="hidden" name="action" value="remove_key">
+            <input type="hidden" name="provider" value="{{ pid }}">
+            <button type="submit" class="btn btn-secondary btn-sm"
+                    onclick="return confirm('Remove this saved API key?')">Remove Key</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

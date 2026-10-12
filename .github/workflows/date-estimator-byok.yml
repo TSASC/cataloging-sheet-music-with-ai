@@ -1,0 +1,31 @@
+name: Date Estimator BYOK
+on:
+  push:
+    branches: [main]
+    paths:
+      - date-estimator-byok/**
+      - .github/workflows/date-estimator-byok.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - date-estimator-byok/**
+      - .github/workflows/date-estimator-byok.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: date-estimator-byok
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -r requirements.txt pytest
+      - run: python -m compileall -q app.py run.py imslp_estimator
+      - run: python -m pytest -q
+        env:
+          FLASK_SECRET_KEY: local-test-secret-not-for-production

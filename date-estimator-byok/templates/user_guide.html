@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}User Guide — Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>User Guide</h1>
+    <p class="page-subtitle">Run locally, bring your own keys, and review the results before exporting.</p>
+</div>
+
+<details class="landing-collapse" open>
+    <summary class="landing-collapse-trigger">Local Setup</summary>
+    <div class="guide-section">
+        <ol>
+            <li>Install Python 3.11 or 3.12. Install Git if you want to clone the repository.</li>
+            <li>Clone with <code>git clone https://github.com/TSASC/cataloging-sheet-music-with-ai.git</code>, or download a ZIP from that repository and extract it.</li>
+            <li>Open a terminal in the repository's <code>date-estimator-byok</code> subfolder and run <code>python3 run.py</code>. For a Git clone, use <code>cd cataloging-sheet-music-with-ai/date-estimator-byok</code>. On Windows, use <code>py -3.12 run.py</code> if <code>python3</code> is unavailable.</li>
+            <li>The launcher prepares a virtual environment, installs dependencies, and opens the local app in your browser. No app account is required.</li>
+        </ol>
+        <p>Keep the terminal open while working. Press <code>Ctrl+C</code> to stop. Run the same command to reopen the app.</p>
+        <p>To update a Git clone, stop the app and run <code>git pull --ff-only</code>, then restart. ZIP installations need a new ZIP; preserve local settings and results separately.</p>
+    </div>
+</details>
+
+<details class="landing-collapse" open>
+    <summary class="landing-collapse-trigger">Bring Your Own API Keys</summary>
+    <div class="guide-section">
+        <p>Date search and Excel estimation do not need a model API key. Image transcription does.</p>
+        <ol>
+            <li>Open <a href="/settings">Settings</a> and save your own provider key.</li>
+            <li>Select the active provider, click <strong>Use Selected Provider</strong>, then choose and save a model.</li>
+            <li>Return to Image Transcription or Batch Transcription.</li>
+        </ol>
+        <p>Providers include OpenAI, Anthropic, Google Gemini, Harvard OpenAI, and Harvard Gemini. Harvard endpoints require authorized access and share one Harvard key. Model Comparison uses the Harvard OpenAI and Harvard Gemini providers.</p>
+        <p>Saved keys are encrypted in the local server-side session, which expires after 30 days. They do not follow you to another computer. Protect the project folder and its local settings.</p>
+        <p><strong>Privacy:</strong> transcription sends image content and prompts to the selected provider. Comparison sends them to each selected provider. Local operation is not a zero-data-retention guarantee. Provider retention, billing, and access policies apply; do not send sensitive images without permission.</p>
+    </div>
+</details>
+
+<details class="landing-collapse" open>
+    <summary class="landing-collapse-trigger">Main Workflows</summary>
+    <div class="guide-section">
+        <h3>Date Search</h3>
+        <p>Enter publisher, city, address, and plate-number clues. The estimator matches IMSLP publisher records and combines the available date ranges. Review the explanation and source links; estimates are not authoritative dates.</p>
+        <h3>Excel Upload</h3>
+        <p>Upload an <code>.xlsx</code> file containing <code>City</code>, <code>Publisher name</code>, <code>Address</code>, and <code>Plate number</code> columns. Preview results, review rows, and export simple, detailed, or cataloging spreadsheets.</p>
+        <h3>Image Transcription</h3>
+        <p>Upload an image or supply a local file path. Review the prompt, transcribe with your chosen provider, then check and edit the extracted bibliographic fields before saving.</p>
+        <h3>Batch Transcription</h3>
+        <p>Upload several images or select a local folder. Review the prompt, start a run, transcribe images, and add accepted rows to the run. Export CSV or XLSX before ending your work.</p>
+        <h3>Model Comparison</h3>
+        <p>Select images and Harvard models, run a comparison, and inspect the side-by-side output. Both providers receive the selected images and prompts and may incur charges.</p>
+        <h3>Research Tools</h3>
+        <p>Publisher Match, Name Similarity, Imprint Lookup, Address Lookup, Plate Tables, and Date Formulas help investigate the data behind an estimate.</p>
+    </div>
+</details>
+
+<details class="landing-collapse">
+    <summary class="landing-collapse-trigger">Optional Microsoft Sources</summary>
+    <div class="guide-section">
+        <p>Local uploads and folders work without Microsoft configuration. OneDrive and SharePoint require your own Microsoft OAuth application and tenant permissions.</p>
+        <p>Set <code>MICROSOFT_CLIENT_ID</code>, <code>MICROSOFT_CLIENT_SECRET</code>, and <code>MICROSOFT_TENANT_ID</code> in your local environment or <code>.env</code>. Start on a fixed port with <code>PORT=5001 python3 run.py</code> on Mac/Linux, or run <code>set PORT=5001</code> then <code>py -3.12 run.py</code> in Windows Command Prompt. Register the matching callback <code>http://127.0.0.1:5001/oauth/onedrive/callback</code>.</p>
+        <p>Use <strong>Connect OneDrive</strong> or <strong>Connect Microsoft</strong> in the image source selector, review the requested permissions, and select a folder. SharePoint uses the same Microsoft connection. Microsoft sign-in is optional and is not an app account.</p>
+        <p>Do not bypass browser security warnings. Check your application configuration and redirect URI if connection fails.</p>
+    </div>
+</details>
+
+<details class="landing-collapse">
+    <summary class="landing-collapse-trigger">File Paths and Troubleshooting</summary>
+    <div class="guide-section">
+        <p><strong>Mac:</strong> select a file or folder in Finder, hold Option, right-click, and choose <strong>Copy as Pathname</strong>. <strong>Windows:</strong> right-click in File Explorer and choose <strong>Copy as path</strong>. Remove surrounding quotes before pasting if needed.</p>
+        <p><strong>No API key:</strong> save a key for the active provider in Settings. A key for a different provider will not authorize the request.</p>
+        <p><strong>Provider error:</strong> check key validity, model access, quota, and the provider's service status. Review partial results before retrying a batch.</p>
+        <p><strong>Microsoft unavailable:</strong> configure your own OAuth application or use local uploads instead.</p>
+        <p><strong>Date lookup fails:</strong> verify your internet connection and the publisher spelling. Date estimation retrieves publisher data from IMSLP.</p>
+        <p><strong>App will not start:</strong> confirm Python 3.11 or 3.12 is installed and inspect the terminal error. Dependency installation needs an internet connection.</p>
+    </div>
+</details>
+{% endblock %}

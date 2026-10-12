@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Upload | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Bulk Excel Upload</h1>
+    <p class="page-subtitle">Upload an Excel file to estimate publication dates for multiple entries at once.</p>
+</div>
+
+<div class="upload-instructions">
+    <p>Your <code>.xlsx</code> file must contain these columns:</p>
+    <ul>
+        <li><strong>Publisher name</strong></li>
+        <li><strong>Address</strong></li>
+        <li><strong>City</strong></li>
+        <li><strong>Plate number</strong></li>
+    </ul>
+    <p style="font-size: var(--text-sm); color: var(--text-secondary);">Only these four fields are used for estimation. All other columns are preserved in the output.</p>
+</div>
+
+<div id="progress-container" style="display: none; margin: var(--space-xl) 0;">
+    <div class="progress-bar-outer">
+        <div id="progress-bar" style="width: 0%;"></div>
+    </div>
+    <p id="progress-text">Processing: 0%</p>
+</div>
+
+<div id="unfound-publishers-container" style="display: none;">
+    <div class="unfound-card">
+        <div class="unfound-card-header">
+            <h3>Unfound Publishers</h3>
+            <button class="btn btn-small btn-secondary" onclick="copyUnfoundPublishers()">Copy to Clipboard</button>
+        </div>
+        <div class="unfound-card-body">
+            <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-sm);">These publishers were not found in the database:</p>
+            <div id="unfound-publishers-list" class="unfound-list"></div>
+        </div>
+    </div>
+</div>
+
+<form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+        <label>Excel Source</label>
+        <div class="input-toggle">
+            <button type="button" class="toggle-btn active" onclick="switchExcelInput('upload')">Upload File</button>
+            <button type="button" class="toggle-btn" onclick="switchExcelInput('path')">Local Path</button>
+        </div>
+    </div>
+
+    <div class="form-group" id="excel-upload-input">
+        <label for="file">Select Excel File</label>
+        <input type="file" id="file" name="file" accept=".xlsx">
+    </div>
+
+    <div class="form-group" id="excel-path-input" style="display: none;">
+        <div class="label-with-help">
+            <label for="excel_path">Excel File Path</label>
+            <button type="button" class="path-help-btn" onclick="this.nextElementSibling.classList.toggle('closed')" title="How to find a file path">?</button>
+            <div class="path-help-card">
+                <button type="button" class="path-help-close" onclick="this.parentElement.classList.add('closed')">&times;</button>
+                <strong>Mac</strong>
+                <ol>
+                    <li>Open Finder and find your Excel file</li>
+                    <li>Right-click the file</li>
+                    <li><strong>Hold the Option key</strong> — "Copy" changes to "Copy as Pathname"</li>
+                    <li>Click "Copy as Pathname", then paste here</li>
+                </ol>
+                <strong>Windows</strong>
+                <ol>
+                    <li>Open File Explorer and find your Excel file</li>
+                    <li>Right-click the file and click "Copy as path"</li>
+                    <li>Paste here — quotes will be removed automatically</li>
+                </ol>
+            </div>
+        </div>
+        <input type="text" id="excel_path" name="excel_path" placeholder="/path/to/your/file.xlsx" class="form-input">
+        <small class="form-help">Full path to a .xlsx file on your computer (local/desktop only)</small>
+    </div>
+
+    <div class="mode-options">
+        <label class="mode-option">
+            <input type="radio" name="mode" value="normal" checked>
+            <div class="mode-label">
+                <strong>Normal Mode</strong>
+                <span>Process all rows at once and preview results</span>
+            </div>
+        </label>
+        <label class="mode-option">
+            <input type="radio" name="mode" value="review">
+            <div class="mode-label">
+                <strong>Review Mode</strong>
+                <span>Review and edit results one row at a time</span>
+            </div>
+        </label>
+    </div>
+
+    <button type="submit" id="uploadBtn">Upload and Process</button>
+</form>
+
+<script>
+function switchExcelInput(mode) {
+    document.getElementById('excel-upload-input').style.display = mode === 'upload' ? '' : 'none';
+    document.getElementById('excel-path-input').style.display = mode === 'path' ? '' : 'none';
+    document.querySelectorAll('.input-toggle .toggle-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', (i === 0 && mode === 'upload') || (i === 1 && mode === 'path'));
+    });
+    if (mode === 'upload') document.getElementById('excel_path').value = '';
+    if (mode === 'path') document.getElementById('file').value = '';
+}
+
+document.getElementById('upload-form').onsubmit = function() {
+    document.getElementById('progress-container').style.display = 'block';
+    pollProgress();
+    return true;
+};
+
+function pollProgress() {
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const unfoundContainer = document.getElementById('unfound-publishers-container');
+    const unfoundList = document.getElementById('unfound-publishers-list');
+
+    const checkProgress = async () => {
+        try {
+            const response = await fetch('/progress', {credentials: 'include'});
+            const data = await response.json();
+
+            if (data.total > 0) {
+                const pct = Math.round((data.current / data.total) * 100);
+                progressBar.style.width = pct + '%';
+                progressText.textContent = `Processing: ${pct}% (${data.current}/${data.total} rows)`;
+            }
+
+            if (data.status === 'completed') {
+                progressText.textContent = 'Processing complete!';
+                const unfoundResponse = await fetch('/unfound-publishers', {credentials: 'include'});
+                const unfoundData = await unfoundResponse.json();
+                if (unfoundData.count > 0) {
+                    unfoundContainer.style.display = 'block';
+                    unfoundList.innerHTML = unfoundData.publishers
+                        .map(p => `<div>${p}</div>`).join('');
+                }
+                return;
+            } else if (data.status === 'error') {
+                progressText.textContent = 'An error occurred.';
+                return;
+            }
+            setTimeout(checkProgress, 500);
+        } catch (error) {
+            progressText.textContent = 'Error checking progress.';
+        }
+    };
+    checkProgress();
+}
+
+async function copyUnfoundPublishers() {
+    try {
+        const response = await fetch('/unfound-publishers', {credentials: 'include'});
+        const data = await response.json();
+        await navigator.clipboard.writeText(data.publishers.join('\n'));
+        const btn = document.querySelector('button[onclick="copyUnfoundPublishers()"]');
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+    } catch (error) {
+        console.error('Error copying:', error);
+    }
+}
+</script>
+{% endblock %}

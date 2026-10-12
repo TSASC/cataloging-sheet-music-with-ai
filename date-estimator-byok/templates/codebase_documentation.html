@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Documentation | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="documentation-page">
+    <div class="doc-header">
+        <h1>Codebase Documentation</h1>
+        <p class="doc-subtitle">Technical documentation for the Date Estimator BYOK</p>
+    </div>
+
+    <div class="doc-content">
+        {{ content | safe }}
+    </div>
+
+    <div class="doc-footer">
+        <a href="/" class="btn btn-secondary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,840 @@
+{% extends "base.html" %}
+
+{% block title %}Batch Transcription | Date Estimator BYOK{% endblock %}
+
+{% block container_class %}container-wide{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Batch Image Transcription</h1>
+    <p class="page-subtitle">Monitor a folder for images, transcribe them with AI, review results, and export as CSV or XLSX.</p>
+</div>
+
+<p class="form-help">Transcription sends images and prompts to your selected provider. Zero data retention is not guaranteed; check the provider's terms before sending sensitive material.</p>
+
+{% if error %}
+<div class="alert alert-error"><strong>Error:</strong> {{ error }}</div>
+{% endif %}
+
+<div class="section-card">
+    <h2>Step 1: Choose Image Source</h2>
+    {% if not folder_path %}
+    <div class="form-group">
+        <div class="input-toggle" style="margin-bottom: var(--space-lg);">
+            <button type="button" class="toggle-btn active" onclick="switchSource('upload')">Upload Images</button>
+            <button type="button" class="toggle-btn" onclick="switchSource('local')">Local Folder</button>
+            <button type="button" class="toggle-btn" onclick="switchSource('onedrive')">OneDrive</button>
+            <button type="button" class="toggle-btn" onclick="switchSource('sharepoint')">SharePoint</button>
+        </div>
+    </div>
+
+    <div id="source-upload">
+        <form method="POST" enctype="multipart/form-data" action="/batch-upload-images">
+            <div class="form-group">
+                <label for="batch_images">Select Images</label>
+                <input type="file" id="batch_images" name="batch_images" accept="image/*" multiple class="form-input" required>
+                <small class="form-help">Select one or more images (JPG, PNG, TIFF, etc.)</small>
+            </div>
+            <button type="submit">Upload &amp; Start</button>
+        </form>
+    </div>
+
+    <div id="source-local" style="display: none;">
+        <form method="POST">
+            <input type="hidden" name="action" value="set_folder">
+            <div class="form-group">
+                <div class="label-with-help">
+                    <label for="folder_path">Folder Path</label>
+                    <button type="button" class="path-help-btn" onclick="this.nextElementSibling.classList.toggle('closed')" title="How to find a folder path">?</button>
+                    <div class="path-help-card">
+                        <button type="button" class="path-help-close" onclick="this.parentElement.classList.add('closed')">&times;</button>
+                        <strong>Mac</strong>
+                        <ol>
+                            <li>Open Finder and navigate to your images folder</li>
+                            <li>Right-click the folder</li>
+                            <li><strong>Hold the Option key</strong> — "Copy" changes to "Copy as Pathname"</li>
+                            <li>Click "Copy as Pathname", then paste here</li>
+                        </ol>
+                        <strong>Windows</strong>
+                        <ol>
+                            <li>Open File Explorer and navigate to your images folder</li>
+                            <li>Right-click the folder and click "Copy as path"</li>
+                            <li>Paste here and remove the quotes around it</li>
+                        </ol>
+                    </div>
+                </div>
+                <input type="text" id="folder_path" name="folder_path" placeholder="/path/to/your/images/folder" class="form-input" required>
+                <small class="form-help">Full path to the folder containing your images (local/desktop only)</small>
+            </div>
+            <button type="submit">Set Folder</button>
+        </form>
+    </div>
+
+    <div id="source-onedrive" style="display: none;">
+        {% if session.get('onedrive') %}
+        <p style="color: var(--success); font-size: var(--text-sm); margin-bottom: var(--space-md);">OneDrive connected</p>
+        <div id="onedrive-browser">
+            <div id="onedrive-breadcrumb" class="onedrive-breadcrumb">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="browseDrive('')">Root</button>
+            </div>
+            <div id="onedrive-folders" class="onedrive-folder-list">
+                <p style="color: var(--text-tertiary);">Loading folders...</p>
+            </div>
+        </div>
+        <div style="margin-top: var(--space-md);">
+            <a href="/oauth/onedrive/disconnect" class="btn btn-secondary btn-sm">Disconnect OneDrive</a>
+        </div>
+        {% else %}
+        <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-md);">
+            Connect your OneDrive account to browse and select a folder of images.
+        </p>
+        <details class="onedrive-note" style="margin-bottom: var(--space-md);">
+            <summary>Before you connect — read this</summary>
+            <div class="onedrive-note-body">
+                <ul>
+                    <li>Configure your own Microsoft OAuth application before connecting. Review the permissions requested during sign-in.</li>
+                    <li>Available accounts and folders depend on your Microsoft tenant and application permissions.</li>
+                    <li>Do not bypass browser security warnings. Check your OAuth redirect URI and local configuration if sign-in fails.</li>
+                </ul>
+            </div>
+        </details>
+        <a href="/oauth/onedrive/start" class="btn btn-accent">Connect OneDrive</a>
+        {% endif %}
+    </div>
+
+    <div id="source-sharepoint" style="display: none;">
+        {% if session.get('onedrive') %}
+        <p style="color: var(--success); font-size: var(--text-sm); margin-bottom: var(--space-md);">Microsoft connected</p>
+        <div id="sharepoint-browser">
+            <div id="sharepoint-sites" class="onedrive-folder-list">
+                <p style="color: var(--text-tertiary);">Loading SharePoint sites...</p>
+            </div>
+            <div id="sharepoint-folders" class="onedrive-folder-list" style="display: none; margin-top: var(--space-sm);"></div>
+        </div>
+        <div style="margin-top: var(--space-md);">
+            <a href="/oauth/onedrive/disconnect" class="btn btn-secondary btn-sm">Disconnect</a>
+        </div>
+        {% else %}
+        <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-md);">
+            Connect your Microsoft account to browse SharePoint document libraries. Uses the same login as OneDrive.
+        </p>
+        <details class="onedrive-note" style="margin-bottom: var(--space-md);">
+            <summary>Before you connect — read this</summary>
+            <div class="onedrive-note-body">
+                <ul>
+                    <li>Configure your own Microsoft OAuth application before connecting. Review the permissions requested during sign-in.</li>
+                    <li>Available accounts and folders depend on your Microsoft tenant and application permissions.</li>
+                    <li>Do not bypass browser security warnings. Check your OAuth redirect URI and local configuration if sign-in fails.</li>
+                </ul>
+            </div>
+        </details>
+        <a href="/oauth/onedrive/start" class="btn btn-accent">Connect Microsoft</a>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <div class="folder-info">
+        <p><strong>Monitoring:</strong> <code>{{ folder_path }}</code></p>
+        <form method="POST" style="display: inline;">
+            <input type="hidden" name="action" value="change_folder">
+            <button type="submit" class="btn btn-secondary">Change Source</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+{% if folder_path %}
+<div class="section-card">
+    <h2>Step 2: Choose Prompt</h2>
+    {% if not current_run %}
+    <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-md);">Review and customize the AI prompt for this batch run.</p>
+    <div class="prompt-section">
+        <div class="prompt-header">
+            <label>AI Prompt for this Run</label>
+            <button type="button" id="edit-batch-prompt-btn" class="btn btn-small btn-secondary">Edit Prompt</button>
+            <button type="button" id="reset-batch-prompt-btn" class="btn btn-small btn-secondary" style="display:none;">Reset to Default</button>
+        </div>
+        <div id="batch-prompt-display" class="prompt-display">
+            <pre id="batch-prompt-text">{{ batch_prompt or default_prompt }}</pre>
+        </div>
+        <div id="batch-prompt-edit" class="prompt-edit" style="display:none;">
+            <textarea id="batch_custom_prompt" name="batch_custom_prompt" class="prompt-textarea" placeholder="Enter your custom prompt here...">{{ batch_prompt or default_prompt }}</textarea>
+            <div class="prompt-edit-buttons">
+                <button type="button" id="save-batch-prompt-btn" class="btn btn-small btn-primary">Save Prompt</button>
+                <button type="button" id="cancel-batch-prompt-btn" class="btn btn-small btn-secondary">Cancel</button>
+            </div>
+        </div>
+        <small class="form-help">This prompt will be sent to the AI for all images in this batch run.</small>
+    </div>
+    {% else %}
+    <div class="prompt-info">
+        <p style="font-weight: 600; margin-bottom: var(--space-sm);">Prompt for Current Run:</p>
+        <div class="prompt-display-readonly">
+            <pre>{{ batch_prompt or default_prompt }}</pre>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section-card">
+    <h2>Step 3: Start a Run</h2>
+    {% if not current_run %}
+    <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-md);">Start a new transcription run to begin processing images.</p>
+    <form method="POST">
+        <input type="hidden" name="action" value="start_run">
+        <button type="submit" class="btn btn-large btn-primary">Start New Run</button>
+    </form>
+    {% else %}
+    <div class="run-info">
+        <p><strong>Active Run:</strong> {{ current_run.id }}</p>
+        <p><strong>Images Processed:</strong> <span id="run-count">{{ run_count|default(0) }}</span></p>
+        <p><strong>Started:</strong> {{ current_run.started_at[:19] }}</p>
+        <p class="form-help">You can export CSV or XLSX at any time. Finishing this run keeps the saved rows available below.</p>
+        <div class="run-actions">
+            <form method="POST" style="display: inline;">
+                <input type="hidden" name="action" value="end_run">
+                <button type="submit" class="btn btn-warning">Finish Run</button>
+            </form>
+            {% if run_count|default(0) > 0 %}
+            <a href="/export-run/csv" class="btn btn-success">Export CSV</a>
+            <a href="/export-run/xlsx" class="btn btn-success">Export XLSX</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if saved_runs %}
+<div class="section-card">
+    <h2>Saved Runs</h2>
+    <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-md);">Finished runs stay here so you can export them later.</p>
+    <div class="saved-run-list">
+        {% for run in saved_runs %}
+        <div class="saved-run-row">
+            <div>
+                <p><strong>Run:</strong> {{ run.id }}</p>
+                <p class="form-help">{{ run.count }} saved image{{ '' if run.count == 1 else 's' }} &middot; Saved {{ run.saved_at[:19] }}</p>
+            </div>
+            <div class="saved-run-actions">
+                <a href="/export-run/csv?run_id={{ run.id|urlencode }}" class="btn btn-success">Export CSV</a>
+                <a href="/export-run/xlsx?run_id={{ run.id|urlencode }}" class="btn btn-success">Export XLSX</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if current_run %}
+<div class="section-card">
+    <h2>Step 4: Select Images to Process</h2>
+    <div class="image-controls">
+        <span class="status-indicator" id="status">Loading images...</span>
+        <button onclick="refreshImages()" class="btn btn-small btn-secondary">Refresh</button>
+        <span class="auto-refresh-info">Auto-refreshing every {{ '5s' if session.get('batch_source') in ('onedrive', 'sharepoint') else '1s' }}</span>
+    </div>
+    <div id="image-list" class="image-list"></div>
+</div>
+
+<div id="transcription-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeTranscriptionModal()">&times;</span>
+        <h2>Review & Edit Transcription</h2>
+        <div id="transcription-form-container"></div>
+    </div>
+</div>
+
+<div id="preview-modal" class="modal">
+    <div class="modal-content preview-modal-content">
+        <span class="close" onclick="closePreviewModal()">&times;</span>
+        <h2 id="preview-title">Image Preview</h2>
+        <div class="preview-container">
+            <img id="preview-image" src="" alt="Image preview" />
+            <div class="preview-loading">Loading image...</div>
+        </div>
+        <div class="preview-actions">
+            <button onclick="closePreviewModal()" class="btn btn-secondary">Close</button>
+            <button onclick="transcribeFromPreview()" class="btn btn-primary">Transcribe This Image</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<script>
+let refreshInterval;
+let currentImagePath = '';
+let currentImageName = '';
+let lastImageData = null;
+let systemErrorDetected = false;
+const fetchOpts = {credentials: 'same-origin'};
+const batchSource = '{{ session.get("batch_source", "local") }}';
+const isCloud = batchSource === 'onedrive' || batchSource === 'sharepoint';
+let currentModelPrediction = {};
+let currentEstimatorProvided = {};
+const externalSourceNotePresets = ['caption'];
+
+function escapeJsString(value) {
+    return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function switchSource(source) {
+    const panels = ['source-upload', 'source-local', 'source-onedrive', 'source-sharepoint'];
+    const modes = ['upload', 'local', 'onedrive', 'sharepoint'];
+    panels.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    const activePanel = document.getElementById('source-' + source);
+    if (activePanel) activePanel.style.display = '';
+    document.querySelectorAll('.input-toggle .toggle-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', modes[i] === source);
+    });
+    if (source === 'onedrive' && document.getElementById('onedrive-folders')) browseDrive('');
+    if (source === 'sharepoint' && document.getElementById('sharepoint-sites')) loadSharePointSites();
+}
+
+let currentSPSiteId = '';
+
+function loadSharePointSites() {
+    const sitesDiv = document.getElementById('sharepoint-sites');
+    sitesDiv.innerHTML = '<p style="color: var(--text-tertiary);">Loading SharePoint sites...</p>';
+    document.getElementById('sharepoint-folders').style.display = 'none';
+    fetch('/sharepoint/sites', fetchOpts).then(r => r.json()).then(data => {
+        if (data.error) { sitesDiv.innerHTML = `<p class="alert alert-error">${data.error}</p>`; return; }
+        if (!data.sites.length) { sitesDiv.innerHTML = '<p style="color: var(--text-tertiary);">No SharePoint sites found.</p>'; return; }
+        sitesDiv.innerHTML = data.sites.map(s =>
+            `<div class="onedrive-folder-item">
+                <button class="btn btn-secondary btn-sm" onclick="browseSPSite('${s.id}', '${s.name.replace(/'/g, "\\'")}')" style="flex:1;justify-content:flex-start;">📁 ${s.name}</button>
+            </div>`
+        ).join('');
+    }).catch(() => { sitesDiv.innerHTML = '<p class="alert alert-error">Failed to load sites</p>'; });
+}
+
+function browseSPSite(siteId, siteName) {
+    currentSPSiteId = siteId;
+    document.getElementById('sharepoint-sites').innerHTML = `<p style="color:var(--text-secondary);font-size:var(--text-sm);">Site: <strong>${siteName}</strong> <button class="btn btn-secondary btn-sm" onclick="loadSharePointSites()" style="margin-left:var(--space-sm);">Back to sites</button></p>`;
+    browseSPFolder(siteId, '');
+}
+
+function browseSPFolder(siteId, parentId) {
+    const foldersDiv = document.getElementById('sharepoint-folders');
+    foldersDiv.style.display = '';
+    foldersDiv.innerHTML = '<p style="color: var(--text-tertiary);">Loading folders...</p>';
+    fetch(`/sharepoint/browse?site_id=${encodeURIComponent(siteId)}&id=${encodeURIComponent(parentId)}`, fetchOpts)
+    .then(r => r.json()).then(data => {
+        if (data.error) { foldersDiv.innerHTML = `<p class="alert alert-error">${data.error}</p>`; return; }
+        if (!data.folders.length) { foldersDiv.innerHTML = '<p style="color: var(--text-tertiary);">No subfolders. Select this folder or go back.</p>'; return; }
+        foldersDiv.innerHTML = data.folders.map(f =>
+            `<div class="onedrive-folder-item">
+                <button class="btn btn-secondary btn-sm" onclick="browseSPFolder('${siteId}', '${f.id}')" style="flex:1;justify-content:flex-start;">📁 ${f.name}</button>
+                <button class="btn btn-accent btn-sm" onclick="selectSPFolder('${siteId}', '${f.id}', '${f.name.replace(/'/g, "\\'")}')">Select</button>
+            </div>`
+        ).join('');
+    }).catch(() => { foldersDiv.innerHTML = '<p class="alert alert-error">Failed to load folders</p>'; });
+}
+
+function selectSPFolder(siteId, folderId, folderName) {
+    const fd = new FormData();
+    fd.append('site_id', siteId);
+    fd.append('folder_id', folderId);
+    fd.append('folder_name', folderName);
+    fetch('/sharepoint/select-folder', { method: 'POST', body: fd, credentials: 'same-origin' })
+    .then(r => r.json()).then(data => { if (data.success) location.reload(); });
+}
+
+function browseDrive(parentId) {
+    const foldersDiv = document.getElementById('onedrive-folders');
+    foldersDiv.innerHTML = '<p style="color: var(--text-tertiary);">Loading folders...</p>';
+    fetch('/onedrive/browse?id=' + encodeURIComponent(parentId), fetchOpts)
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { foldersDiv.innerHTML = `<p class="alert alert-error">${data.error}</p>`; return; }
+        if (!data.folders.length) { foldersDiv.innerHTML = '<p style="color: var(--text-tertiary);">No subfolders. Select this folder or go back.</p>'; return; }
+        foldersDiv.innerHTML = data.folders.map(f =>
+            `<div class="onedrive-folder-item">
+                <button class="btn btn-secondary btn-sm" onclick="browseDrive('${f.id}')" style="flex:1;justify-content:flex-start;">📁 ${f.name}</button>
+                <button class="btn btn-accent btn-sm" onclick="selectDriveFolder('${f.id}', '${f.name.replace(/'/g, "\\'")}')">Select</button>
+            </div>`
+        ).join('');
+    })
+    .catch(() => { foldersDiv.innerHTML = '<p class="alert alert-error">Failed to load folders</p>'; });
+}
+
+function selectDriveFolder(folderId, folderName) {
+    const fd = new FormData();
+    fd.append('folder_id', folderId);
+    fd.append('folder_name', folderName);
+    fetch('/onedrive/select-folder', { method: 'POST', body: fd, credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+    });
+}
+
+function startAutoRefresh() {
+    const interval = isCloud ? 5000 : 1000;
+    refreshInterval = setInterval(refreshImages, interval);
+}
+function stopAutoRefresh() { if (refreshInterval) clearInterval(refreshInterval); }
+
+function refreshImages() {
+    const endpoint = batchSource === 'sharepoint' ? '/sharepoint/images' : batchSource === 'onedrive' ? '/onedrive/images' : '/get-images';
+    fetch(endpoint, fetchOpts)
+    .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(data => {
+        if (data.error) {
+            document.getElementById('status').innerHTML = 'Error: ' + data.error;
+            document.getElementById('status').className = 'status-indicator error';
+            return;
+        }
+        document.getElementById('status').innerHTML = `Found ${data.count} images`;
+        document.getElementById('status').className = 'status-indicator success';
+
+        const hash = JSON.stringify(data.images.map(i => ({ name: i.name, path: i.path, modified: i.modified, size: i.size })));
+        if (lastImageData === hash) return;
+        lastImageData = hash;
+
+        const imageList = document.getElementById('image-list');
+        if (!data.images.length) { imageList.innerHTML = '<div class="loading">No images found in this folder</div>'; return; }
+
+        const html = data.images.map(img => {
+            const ep = img.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const en = img.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const isOD = ep.startsWith('onedrive:');
+            const isSP = ep.startsWith('sharepoint:');
+            let thumbSrc;
+            if (isOD) { thumbSrc = `/onedrive/preview?id=${ep.replace('onedrive:', '')}&t=${Date.now()}`; }
+            else if (isSP) { const parts = img.path.split(':'); thumbSrc = `/sharepoint/preview?site_id=${parts[1]}&id=${parts[2]}&t=${Date.now()}`; }
+            else { thumbSrc = `/preview-image?path=${encodeURIComponent(img.path)}&t=${Date.now()}`; }
+            return `<div class="image-item">
+                <div class="image-header">
+                    <div class="image-name">${img.name}</div>
+                    <div class="image-thumbnail-container" title="Click to preview">
+                        <img class="image-thumbnail" src="${thumbSrc}" alt="${img.name}"
+                             onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                             onerror="this.style.display='none'; this.nextElementSibling.innerHTML='IMG'; this.nextElementSibling.className='thumbnail-error';"
+                             onclick="previewImage('${ep}', '${en}'); event.stopPropagation();">
+                        <div class="thumbnail-loading">...</div>
+                    </div>
+                </div>
+                <div class="image-details">
+                    <div>Modified: ${img.modified_str}</div>
+                    <div>Size: ${formatFileSize(img.size)}</div>
+                </div>
+                <div class="image-actions">
+                    <button class="btn btn-small btn-secondary" onclick="previewImage('${ep}', '${en}'); event.stopPropagation();">Preview</button>
+                    <button class="btn btn-small btn-primary" onclick="selectImage('${ep}', '${en}'); event.stopPropagation();">Transcribe</button>
+                </div>
+            </div>`;
+        }).join('');
+        imageList.style.opacity = '0.7';
+        setTimeout(() => { imageList.innerHTML = html; imageList.style.opacity = '1'; }, 50);
+    })
+    .catch(() => {
+        document.getElementById('status').innerHTML = 'Error loading images';
+        document.getElementById('status').className = 'status-indicator error';
+    });
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    const k = 1024, s = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + s[i];
+}
+
+function previewImage(path, name) {
+    currentImagePath = path; currentImageName = name;
+    document.getElementById('preview-title').textContent = `Preview: ${name}`;
+    document.querySelector('.preview-loading').style.display = 'block';
+    document.getElementById('preview-image').style.display = 'none';
+    document.getElementById('preview-modal').style.display = 'block';
+    const img = document.getElementById('preview-image');
+    img.onload = function() { document.querySelector('.preview-loading').style.display = 'none'; img.style.display = 'block'; };
+    img.onerror = function() { document.querySelector('.preview-loading').innerHTML = 'Failed to load image'; };
+    if (path.startsWith('onedrive:')) {
+        img.src = `/onedrive/preview?id=${path.replace('onedrive:', '')}&t=${Date.now()}`;
+    } else if (path.startsWith('sharepoint:')) {
+        const parts = path.split(':');
+        img.src = `/sharepoint/preview?site_id=${parts[1]}&id=${parts[2]}&t=${Date.now()}`;
+    } else {
+        img.src = `/preview-image?path=${encodeURIComponent(path)}&t=${Date.now()}`;
+    }
+}
+
+function transcribeFromPreview() { closePreviewModal(); selectImage(currentImagePath, currentImageName); }
+
+function selectImage(path, name) {
+    currentImagePath = path; currentImageName = name;
+    document.getElementById('transcription-form-container').innerHTML = '<div class="loading">Transcribing image...</div>';
+    document.getElementById('transcription-modal').style.display = 'block';
+    const fd = new FormData();
+    let endpoint;
+    if (path.startsWith('onedrive:')) {
+        fd.append('item_id', path.replace('onedrive:', ''));
+        fd.append('filename', name);
+        endpoint = '/onedrive/download-for-transcription';
+    } else if (path.startsWith('sharepoint:')) {
+        const parts = path.split(':');
+        fd.append('site_id', parts[1]);
+        fd.append('item_id', parts[2]);
+        fd.append('filename', name);
+        endpoint = '/sharepoint/download-for-transcription';
+    } else {
+        fd.append('image_path', path);
+        endpoint = '/transcribe-batch-image';
+    }
+    fetch(endpoint, { method: 'POST', body: fd, credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { document.getElementById('transcription-form-container').innerHTML = `<div class="alert alert-error">${data.error}</div>`; return; }
+        showTranscriptionForm(data, name);
+    })
+    .catch(e => { document.getElementById('transcription-form-container').innerHTML = `<div class="alert alert-error">Error: ${e}</div>`; });
+}
+
+function showTranscriptionForm(data, name) {
+    const result = (data && data.result) || {};
+    const fields = [
+        { key: 'title', label: 'Title', type: 'textarea' },
+        { key: 'statement_of_responsibility', label: 'Statement of Responsibility', type: 'textarea' },
+        { key: 'edition', label: 'Edition', type: 'input' },
+        { key: 'city', label: 'City', type: 'input' },
+        { key: 'publisher_name', label: 'Publisher Name', type: 'input' },
+        { key: 'address', label: 'Address', type: 'textarea' },
+        { key: 'plate_number', label: 'Plate Number', type: 'input' },
+        { key: 'date', label: 'Date', type: 'input' },
+        { key: 'image_name', label: 'Image Name', type: 'input', readonly: true },
+    ];
+    // Remember the model's original prediction for each editable field so every
+    // saved scan can be labelled with model-vs-human diffs + correction source.
+    currentModelPrediction = {};
+    currentEstimatorProvided = {};
+    fields.forEach(f => { if (!f.readonly) currentModelPrediction[f.key] = result[f.key] || ''; });
+    // Unique per scan: makes /add-to-run idempotent so a retry or double-click
+    // cannot add the same scan twice or trip the run-count check (issue #9).
+    const dedupeKey = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : 'k' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    let html = '<form id="transcription-edit-form">';
+    html += `<input type="hidden" name="dedupe_key" value="${dedupeKey}">`;
+    html += '<div class="transcription-grid">';
+    fields.forEach(f => {
+        const val = (result[f.key] || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        html += `<div class="transcription-field"><label>${f.label}</label>`;
+        if (f.readonly) {
+            html += `<input type="text" class="transcription-input readonly-field" name="${f.key}" value="${val}" readonly>`;
+        } else if (f.type === 'textarea') {
+            html += `<textarea class="transcription-textarea" name="${f.key}" rows="2" oninput="onFieldEdit('${f.key}')">${result[f.key] || ''}</textarea>`;
+        } else {
+            html += `<input type="text" class="transcription-input" name="${f.key}" value="${val}" oninput="onFieldEdit('${f.key}')">`;
+        }
+        // Source label for this field: defaults to Model, auto-flips to Human
+        // edited on change, and can be toggled to + external source (with note).
+        if (!f.readonly) {
+            html += `<div class="source-control src-model" id="src-${f.key}" data-source="model">`;
+            html += `<span class="source-tag">Source: <span class="source-tag-value">Model</span></span>`;
+            html += `<label class="source-ext"><input type="checkbox" onchange="toggleExternal('${f.key}', this.checked)"> external source</label>`;
+            html += `<div class="source-note-tools">`;
+            html += `<input type="text" class="source-note" placeholder="Cite the external source (optional)">`;
+            html += `<div class="source-note-presets">`;
+            externalSourceNotePresets.forEach(preset => {
+                html += `<button type="button" class="source-note-preset" onclick="fillExternalSourceNote('${f.key}', '${escapeJsString(preset)}')">${preset}</button>`;
+            });
+            html += `</div></div>`;
+            html += `</div>`;
+        }
+        html += '</div>';
+    });
+    html += '</div><div class="transcription-actions">';
+    html += '<button type="button" onclick="estimateDate()" class="btn btn-info">Estimate Date</button>';
+    html += '<button type="button" onclick="addToRun()" class="btn btn-large btn-primary">Add to Run</button>';
+    html += '<button type="button" onclick="closeTranscriptionModal()" class="btn btn-secondary">Cancel</button>';
+    html += '</div>';
+    html += '<div id="date-estimation-section" class="date-estimation-section" style="display: none;"><h3>Date Estimation Results</h3><div id="date-estimation-results"></div></div>';
+    html += '</form>';
+    document.getElementById('transcription-form-container').innerHTML = html;
+}
+
+function setFieldSource(key, source) {
+    const ctrl = document.getElementById('src-' + key);
+    if (!ctrl) return;
+    ctrl.setAttribute('data-source', source);
+    ctrl.className = 'source-control src-' + source;
+    const labels = {
+        model: 'Model',
+        human_edited: 'Human edited',
+        human_edited_external: 'Human edited + external source',
+        estimator_provided: 'Estimator provided'
+    };
+    const valEl = ctrl.querySelector('.source-tag-value');
+    if (valEl) valEl.textContent = labels[source] || 'Model';
+    const cb = ctrl.querySelector('.source-ext input');
+    if (cb) cb.checked = (source === 'human_edited_external');
+    if (source === 'model' || source === 'estimator_provided') {
+        const note = ctrl.querySelector('.source-note');
+        if (note) note.value = '';
+    }
+}
+
+function isEstimatorProvidedValue(key, value) {
+    return Object.prototype.hasOwnProperty.call(currentEstimatorProvided, key)
+        && (value || '') === (currentEstimatorProvided[key] || '');
+}
+
+function onFieldEdit(key) {
+    const form = document.getElementById('transcription-edit-form');
+    if (!form) return;
+    const field = form.querySelector(`[name="${key}"]`);
+    const ctrl = document.getElementById('src-' + key);
+    if (!field || !ctrl) return;
+    const changed = (field.value || '') !== (currentModelPrediction[key] || '');
+    const matchesEstimator = isEstimatorProvidedValue(key, field.value);
+    const current = ctrl.getAttribute('data-source');
+    if (matchesEstimator) {
+        setFieldSource(key, 'estimator_provided');
+    } else if (!changed) {
+        setFieldSource(key, 'model');            // reverted to the model's value
+    } else if (current === 'model' || current === 'estimator_provided') {
+        setFieldSource(key, 'human_edited');     // first edit
+    }
+    // if already human_edited / human_edited_external, keep the cataloguer's choice
+}
+
+function toggleExternal(key, checked) {
+    if (checked) {
+        setFieldSource(key, 'human_edited_external');
+        return;
+    }
+    const form = document.getElementById('transcription-edit-form');
+    const field = form ? form.querySelector(`[name="${key}"]`) : null;
+    if (field && isEstimatorProvidedValue(key, field.value)) {
+        setFieldSource(key, 'estimator_provided');
+    } else if (field && (field.value || '') === (currentModelPrediction[key] || '')) {
+        setFieldSource(key, 'model');
+    } else {
+        setFieldSource(key, 'human_edited');
+    }
+}
+
+function fillExternalSourceNote(key, value) {
+    setFieldSource(key, 'human_edited_external');
+    const ctrl = document.getElementById('src-' + key);
+    const note = ctrl ? ctrl.querySelector('.source-note') : null;
+    if (note) {
+        note.value = value;
+        note.focus();
+    }
+}
+
+function rememberEstimatorDate(year, fillDateField) {
+    const form = document.getElementById('transcription-edit-form');
+    if (!form) return;
+    const dateField = form.querySelector('input[name="date"]');
+    if (!dateField) return;
+    const yearText = String(year || '');
+    currentEstimatorProvided.date = yearText;
+    if (fillDateField) dateField.value = yearText;
+    if ((dateField.value || '') === yearText) {
+        setFieldSource('date', 'estimator_provided');
+    } else {
+        const ctrl = document.getElementById('src-date');
+        if (ctrl && ctrl.getAttribute('data-source') === 'estimator_provided') onFieldEdit('date');
+    }
+}
+
+function estimateDate() {
+    const form = document.getElementById('transcription-edit-form');
+    const fd = new FormData(form);
+    const section = document.getElementById('date-estimation-section');
+    const results = document.getElementById('date-estimation-results');
+    section.style.display = 'block';
+    results.innerHTML = '<div class="estimation-loading">Estimating date...</div>';
+    fetch('/estimate-date', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { results.innerHTML = `<div class="estimation-error">${data.error}</div>`; return; }
+        let h = '<div class="estimation-input-data"><h4>Input Data</h4>';
+        h += `<div class="estimation-field"><span class="estimation-label">Publisher:</span> ${data.input_data.publisher || '(empty)'}</div>`;
+        h += `<div class="estimation-field"><span class="estimation-label">City:</span> ${data.input_data.city || '(empty)'}</div>`;
+        h += `<div class="estimation-field"><span class="estimation-label">Address:</span> ${data.input_data.address || '(empty)'}</div>`;
+        h += `<div class="estimation-field"><span class="estimation-label">Plate:</span> ${data.input_data.plate || '(empty)'}</div>`;
+        h += '</div>';
+        if (data.error) { h += `<div class="estimation-error">${data.error}</div>`; }
+        else if (data.result && typeof data.result === 'object') {
+            h += '<div class="estimation-result"><h4>Result</h4>';
+            if (data.result.estimated_year) {
+                const safeYear = String(data.result.estimated_year).replace(/'/g, "\\'");
+                rememberEstimatorDate(data.result.estimated_year, false);
+                h += `<div class="estimation-highlight"><strong>Estimated Year:</strong> ${data.result.estimated_year} <button type="button" class="btn btn-small btn-primary" onclick="copyEstimatedDate('${safeYear}')" style="margin-left: var(--space-sm);">Use as Date</button></div>`;
+            }
+            if (data.result.source) h += `<div class="estimation-field"><span class="estimation-label">Source:</span> ${data.result.source}</div>`;
+            if (data.result.link) h += `<div class="estimation-field"><span class="estimation-label">IMSLP:</span> <a href="${data.result.link}" target="_blank">${data.result.link}</a></div>`;
+            if (data.result.all_ranges && data.result.all_ranges.length > 0) {
+                h += '<div class="estimation-section"><h5>Date Range Analysis</h5>';
+                data.result.all_ranges.forEach(r => { h += `<div class="estimation-range"><strong>${r.range || 'Unknown'}</strong> (${r.source || 'Unknown'})</div>`; });
+                h += '</div>';
+            }
+            h += '<div class="developer-info-container"><button type="button" class="btn btn-small btn-outline-secondary" onclick="toggleDeveloperInfo()" id="dev-info-toggle">Developer Info</button>';
+            h += '<div id="developer-info-section" class="developer-info-section" style="display: none;"><h5>Raw Debug Data</h5><div class="debug-data"><pre class="debug-json">' + JSON.stringify(data, null, 2) + '</pre></div></div></div>';
+            h += '</div>';
+        }
+        results.innerHTML = h;
+    })
+    .catch(e => { results.innerHTML = `<div class="estimation-error">Error: ${e}</div>`; });
+}
+
+function copyEstimatedDate(year) {
+    const form = document.getElementById('transcription-edit-form');
+    if (!form) return;
+    const dateField = form.querySelector('input[name="date"]');
+    if (dateField) {
+        rememberEstimatorDate(year, true);
+        dateField.style.outline = '2px solid var(--accent)';
+        setTimeout(() => { dateField.style.outline = ''; }, 1500);
+    }
+}
+
+function addToRun() {
+    if (systemErrorDetected) { alert('System error detected. Please download your data and start a new run.'); return; }
+    const form = document.getElementById('transcription-edit-form');
+    const fd = new FormData(form);
+    const provenance = {};
+    Object.keys(currentModelPrediction).forEach(key => {
+        const field = form.querySelector(`[name="${key}"]`);
+        if (!field) return;
+        const ctrl = document.getElementById('src-' + key);
+        const source = ctrl ? (ctrl.getAttribute('data-source') || 'model') : 'model';
+        const noteEl = ctrl ? ctrl.querySelector('.source-note') : null;
+        provenance[key] = {
+            model: currentModelPrediction[key] || '',
+            final: field.value || '',
+            source: source,
+            note: (source === 'human_edited_external' && noteEl) ? (noteEl.value || '') : ''
+        };
+    });
+    fd.append('model_prediction', JSON.stringify(currentModelPrediction));
+    fd.append('field_provenance', JSON.stringify(provenance));
+    const countEl = document.getElementById('run-count');
+    const currentCount = parseInt(countEl.textContent) || 0;
+    const btn = document.querySelector('button[onclick="addToRun()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Adding...'; }
+    fetch('/add-to-run', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+        if (btn) { btn.disabled = false; btn.textContent = 'Add to Run'; }
+        if (data.error) { alert('Error: ' + data.error); return; }
+        // The server returns the authoritative count. Saving is now atomic and
+        // idempotent, so a count that didn't advance by exactly 1 is no longer
+        // proof of data loss (a dropped response can leave the client lagging).
+        // Only a genuine regression below what we already had signals trouble.
+        if (data.run_count < currentCount) {
+            systemErrorDetected = true;
+            showSystemErrorNotification();
+            return;
+        }
+        countEl.textContent = data.run_count;
+        closeTranscriptionModal();
+    })
+    .catch(e => { if (btn) { btn.disabled = false; btn.textContent = 'Add to Run'; } alert('Error: ' + e); });
+}
+
+function toggleDeveloperInfo() {
+    const s = document.getElementById('developer-info-section');
+    const b = document.getElementById('dev-info-toggle');
+    if (s.style.display === 'none') { s.style.display = 'block'; b.textContent = 'Hide Developer Info'; }
+    else { s.style.display = 'none'; b.textContent = 'Developer Info'; }
+}
+
+function closeTranscriptionModal() {
+    document.getElementById('transcription-modal').style.display = 'none';
+    const s = document.getElementById('date-estimation-section');
+    if (s) { s.style.display = 'none'; }
+    const r = document.getElementById('date-estimation-results');
+    if (r) { r.innerHTML = ''; }
+}
+
+function closePreviewModal() { document.getElementById('preview-modal').style.display = 'none'; }
+
+function showSystemErrorNotification() {
+    let el = document.getElementById('system-error-notification');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'system-error-notification';
+        el.className = 'system-error-notification';
+        const ref = document.querySelector('.run-info') || document.querySelector('.container');
+        ref.parentNode.insertBefore(el, ref.nextSibling);
+    }
+    el.innerHTML = `<div class="error-content">
+        <h3>System Error Detected</h3>
+        <p>The "Add to Run" function is not working properly. Please download your current data and start a new run.</p>
+        <div class="error-actions">
+            <a href="/export-run/csv" class="btn btn-warning">Download CSV</a>
+            <a href="/export-run/xlsx" class="btn btn-warning">Download XLSX</a>
+            <form method="GET" style="display: inline;"><button type="submit" class="btn btn-info">Start New Run</button></form>
+            <button onclick="dismissSystemError()" class="btn btn-secondary">Dismiss</button>
+        </div>
+    </div>`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    closeTranscriptionModal();
+}
+
+function dismissSystemError() {
+    const el = document.getElementById('system-error-notification');
+    if (el) el.remove();
+    systemErrorDetected = false;
+}
+
+function closeModal() { closeTranscriptionModal(); }
+
+document.addEventListener('DOMContentLoaded', function() {
+    {% if current_run %}
+    refreshImages();
+    startAutoRefresh();
+    {% endif %}
+
+    document.getElementById('edit-batch-prompt-btn')?.addEventListener('click', toggleBatchPromptEdit);
+    document.getElementById('reset-batch-prompt-btn')?.addEventListener('click', resetBatchPromptToDefault);
+    document.getElementById('save-batch-prompt-btn')?.addEventListener('click', saveBatchPrompt);
+    document.getElementById('cancel-batch-prompt-btn')?.addEventListener('click', cancelBatchPromptEdit);
+});
+
+window.addEventListener('beforeunload', stopAutoRefresh);
+
+window.onclick = function(e) {
+    if (e.target === document.getElementById('preview-modal')) closePreviewModal();
+};
+
+function toggleBatchPromptEdit() {
+    const d = document.getElementById('batch-prompt-display');
+    const e = document.getElementById('batch-prompt-edit');
+    const eb = document.getElementById('edit-batch-prompt-btn');
+    const rb = document.getElementById('reset-batch-prompt-btn');
+    if (d.style.display !== 'none') { d.style.display = 'none'; e.style.display = 'block'; eb.textContent = 'View Prompt'; rb.style.display = 'inline-flex'; }
+    else { d.style.display = 'block'; e.style.display = 'none'; eb.textContent = 'Edit Prompt'; rb.style.display = 'none'; }
+}
+
+function saveBatchPrompt() {
+    const ta = document.getElementById('batch_custom_prompt');
+    if (!ta.value.trim()) return;
+    const fd = new FormData(); fd.append('action', 'save_prompt'); fd.append('batch_prompt', ta.value);
+    fetch('/batch-transcription', { method: 'POST', body: fd })
+    .then(() => { document.getElementById('batch-prompt-text').textContent = ta.value; toggleBatchPromptEdit(); });
+}
+
+function cancelBatchPromptEdit() {
+    document.getElementById('batch_custom_prompt').value = document.getElementById('batch-prompt-text').textContent;
+    toggleBatchPromptEdit();
+}
+
+function resetBatchPromptToDefault() {
+    if (!confirm('Reset prompt to default?')) return;
+    fetch('/get-default-prompt').then(r => r.json()).then(data => {
+        document.getElementById('batch_custom_prompt').value = data.default_prompt;
+        document.getElementById('batch-prompt-text').textContent = data.default_prompt;
+        const fd = new FormData(); fd.append('action', 'save_prompt'); fd.append('batch_prompt', data.default_prompt);
+        return fetch('/batch-transcription', { method: 'POST', body: fd });
+    }).then(() => { toggleBatchPromptEdit(); });
+}
+</script>
+{% endblock %}

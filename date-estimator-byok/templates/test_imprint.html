@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Imprint Test | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Imprint Analysis</h1>
+    <p class="page-subtitle">Look up imprint date ranges from a publisher's IMSLP page.</p>
+</div>
+
+<form method="POST">
+    <div class="form-group">
+        <label for="publisher">Publisher Name</label>
+        <input name="publisher" id="publisher" value="{{ publisher_input }}" required placeholder="Enter publisher name">
+    </div>
+    <button type="submit">Check Imprints</button>
+</form>
+
+{% if imprint_result %}
+<div style="margin-top: var(--space-2xl);">
+    <h2>Results</h2>
+    {% if imprint_result is string %}
+    <p class="result-empty">{{ imprint_result }}</p>
+    {% else %}
+    <h3>Found Imprint Ranges</h3>
+    <ul class="range-list">
+    {% for range in imprint_result %}
+        <li><strong>{{ range.range }}</strong> <span class="range-source">{{ range.source }}</span></li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Similarity Test | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Publisher Similarity Tester</h1>
+    <p class="page-subtitle">Find publishers above a similarity threshold using sequence matching.</p>
+</div>
+
+<form method="POST">
+    <div class="form-row">
+        <div class="form-group">
+            <label for="publisher">Publisher Name</label>
+            <input type="text" name="publisher" id="publisher" value="{{ input_name }}" required placeholder="Enter publisher name">
+        </div>
+        <div class="form-group">
+            <label for="cutoff">Cutoff Score (0-1)</label>
+            <input type="number" name="cutoff" id="cutoff" min="0" max="1" step="0.01" value="{{ cutoff }}" required>
+        </div>
+    </div>
+    <button type="submit">Test Similarity</button>
+</form>
+
+{% if matches %}
+<div style="margin-top: var(--space-2xl);">
+    <h2>Matches (cutoff &ge; {{ cutoff }})</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Publisher</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, score in matches %}
+                <tr>
+                    <td>{{ name }}</td>
+                    <td>{{ "%.3f"|format(score) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

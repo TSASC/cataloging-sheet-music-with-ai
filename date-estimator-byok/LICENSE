@@ -1,0 +1,71 @@
+# Date Estimator Free Use and Sharing License
+
+Version 1.1
+
+Copyright © 2025–2026 Femi Ositade.
+
+You are welcome to use this software, adapt it to your needs, and share it. Personal use and internal organizational use are free, including at Harvard and other libraries. Selling the software, its derivatives, or products incorporating it requires separate written permission, as does offering it as a hosted or managed product. The complete terms follow.
+
+## 1. What this license covers
+
+The **Software** is the Date Estimator BYOK code, executable versions, and documentation that Femi Ositade (the **Licensor**) distributes under this license. The license applies to the rights he owns or is authorized to license.
+
+The restrictions on the Software also apply to modifications and derivative works to the extent they contain or adapt the Licensor's copyright-protected code or documentation. Changing its name, appearance, packaging, or distribution method does not remove those restrictions.
+
+Separately licensed dependencies and third-party materials keep their own terms. This license does not restrict independently developed software merely because it performs similar functions.
+
+## 2. Free personal and internal use
+
+Subject to these terms, the Licensor grants individuals and organizations a worldwide, non-exclusive, royalty-free copyright license to download, install, run, copy, and modify the Software for personal use or their organization's internal operations.
+
+Organizations may deploy it across their staff, run shared internal services, and use it for bulk processing. This includes Harvard Library and other libraries, universities, businesses, nonprofits, and government bodies. No registration, notification, prior approval, or software license fee is required for these uses. Using it at work or benefiting economically from internal use does not, by itself, require a commercial license.
+
+An organization may engage staff or contractors to install, modify, or maintain it on its behalf. Payment for that assistance is permitted. This does not give the contractor permission to sell the Software or offer it as their own hosted or managed product.
+
+## 3. Sharing and adapting
+
+You may share original or modified copies without charge. Include this license and the applicable copyright and third-party notices, identify material modifications, and do not present a modified version as an official release without permission.
+
+Recipients receive the same permissions and restrictions for the Licensor's material. You cannot remove those restrictions by adding your own terms, changing the name, or including the Software in another project. Free sharing does not authorize the recipient to sell it or make another offering prohibited by section 4.
+
+## 4. Selling, repackaging, and hosted products
+
+The following require the Licensor's prior written permission under a separate agreement:
+
+- Selling, commercially licensing, or commercially sublicensing the Software or a modified or derivative version.
+- Distributing or otherwise making the Software, its modified or derivative versions, or its copyright-protected portions available as part of a product supplied to others for payment or other consideration. This includes renamed or repackaged applications, bundles, plugins, and larger products incorporating that material. Selling the surrounding product rather than charging separately for the Software does not avoid this requirement.
+- Offering the Software or a modified or derivative version to others as a hosted, managed, or service-bureau product, whether free or paid. This includes providing external customers with its functionality or processing their documents through such a product or service.
+
+An organization's service for its own staff and internal operations is permitted under section 2; offering it to external customers is not internal use. Paid installation, modification, or maintenance assistance for an otherwise permitted use remains allowed, but does not authorize product resale or a hosted or managed offering.
+
+Permission may be free or on negotiated terms. Contact the copyright holder to discuss it; notice alone is not permission. Renaming the Software, modifying it, or combining it with other software does not authorize a use restricted here.
+
+## 5. We'd like to hear how you use it
+
+If this Software is useful to you or your organization, a short note about how you use it would be appreciated. For example, share what kind of collection or workflow it helps with, roughly how much material you process, or improvements you have made. If you have access to the original repository, you can open an issue there; otherwise, use an existing contact channel with Femi Ositade.
+
+This is an invitation, not a condition of use. There is no reporting, audit, or telemetry requirement under this license. Do not include confidential documents, personal information, credentials, or other sensitive material in an update.
+
+## 6. Ownership, contributions, and outputs
+
+The Licensor retains the rights he holds in the Software and may use, modify, sell, host, or license his own work separately. This license does not transfer ownership or grant exclusivity.
+
+Contributors retain the rights they hold in their original contributions. Contributions do not remove the restrictions on the Licensor's material. Submitting a contribution does not automatically assign its ownership or grant the Licensor unrestricted commercial rights in it; those permissions need a separate contributor agreement or an express compatible grant.
+
+This license does not claim ownership of catalog records or other outputs generated using the Software. Independent rights in inputs, outputs, third-party materials, and provider services remain governed by their applicable laws and terms. No right to use the Licensor's name or branding to imply endorsement is granted.
+
+## 7. Duration and compliance
+
+For compliant users, these permissions have no fixed expiration and no automatic conversion to an open-source license. A later release or license change does not change the terms of a copy already distributed under this license unless the Licensor expressly offers that copy under the new terms.
+
+If the Licensor gives written notice of a violation, stop the unauthorized activity promptly and correct the violation within 30 days. If it is not corrected in that period, these permissions terminate. After termination, stop using and distributing the Software and remove copies under your control, except copies retained where legally required.
+
+Nothing here limits rights or exceptions that applicable law does not allow this license to restrict.
+
+## 8. No warranty or support commitment
+
+To the maximum extent permitted by applicable law, the Software is provided **as is**, without warranties, including merchantability, fitness for a particular purpose, title, or non-infringement. Estimates and transcriptions may be wrong; review results before relying on them.
+
+This license does not include hosting, support, maintenance, updates, provider credits, or a guarantee of zero data retention. You are responsible for your credentials, provider agreements, data handling, and third-party costs.
+
+To the maximum extent permitted by applicable law, the Licensor is not liable for damages arising from the Software or its use, including lost data, lost profits, or interrupted operations. Mandatory legal protections and liabilities remain unaffected.

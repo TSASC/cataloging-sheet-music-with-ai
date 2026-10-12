@@ -1,5 +1,10 @@
 # cataloging-sheet-music-with-ai
 A process developed for our Advancing Open Knowledge grant, using a python script to extract cataloging metadata obtained from OCR-ed title page scans in ChatGPT, into a .csv, for ingestion into finding aids. 
+
+## Standalone Date Estimator
+
+The [Date Estimator BYOK application](date-estimator-byok/README.md) provides local date estimation, spreadsheet processing, and image transcription using your own API keys. Its setup instructions are in that folder's README. It has its own [license](date-estimator-byok/LICENSE), which applies to that application and does not relicense the existing Colab notebook or this documentation.
+
 # Disclaimer
 In no respect shall TSASC incur any liability for any damages, including, but limited to, direct, indirect, special, or consequential damages arising out of, resulting from, or any way connected to the use of the item, whether or not based upon warranty, contract, tort, or otherwise; whether or not injury was sustained by persons or property or otherwise; and whether or not loss was sustained from, or arose out of, the results of, the item, or any services that may be provided by TSASC.
 # Getting started

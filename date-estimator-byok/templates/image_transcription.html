@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Image Transcription | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Image Transcription</h1>
+    <p class="page-subtitle">Extract bibliographic metadata from sheet music images using AI transcription.</p>
+</div>
+
+<p class="description">
+    Extract bibliographic metadata from a sheet music image using AI.
+    Configure your API key in <a href="/settings">Settings</a>.
+</p>
+
+<p class="form-help">Images and prompts are sent to your selected provider. Zero data retention is not guaranteed; check the provider's terms before sending sensitive material.</p>
+
+<form method="POST" enctype="multipart/form-data" class="form-container">
+    <div class="form-group">
+        <label>Image Source</label>
+        <div class="input-toggle">
+            <button type="button" class="toggle-btn active" onclick="switchInput('upload')">Upload Image</button>
+            <button type="button" class="toggle-btn" onclick="switchInput('path')">Local Path</button>
+            <button type="button" class="toggle-btn" onclick="switchInput('onedrive')">OneDrive</button>
+            <button type="button" class="toggle-btn" onclick="switchInput('sharepoint')">SharePoint</button>
+        </div>
+    </div>
+
+    <div class="form-group" id="upload-input">
+        <label for="image_file">Upload Image</label>
+        <input type="file"
+               id="image_file"
+               name="image_file"
+               accept="image/*"
+               class="form-input">
+        <small class="form-help">JPG, PNG, TIFF, or other image formats</small>
+    </div>
+
+    <div class="form-group" id="path-input" style="display: none;">
+        <div class="label-with-help">
+            <label for="image_path">Image File Path</label>
+            <button type="button" class="path-help-btn" onclick="this.nextElementSibling.classList.toggle('closed')" title="How to find a file path">?</button>
+            <div class="path-help-card">
+                <button type="button" class="path-help-close" onclick="this.parentElement.classList.add('closed')">&times;</button>
+                <strong>Mac</strong>
+                <ol>
+                    <li>Open Finder and find your image file</li>
+                    <li>Right-click the file</li>
+                    <li><strong>Hold the Option key</strong> — "Copy" changes to "Copy as Pathname"</li>
+                    <li>Click "Copy as Pathname", then paste here</li>
+                </ol>
+                <strong>Windows</strong>
+                <ol>
+                    <li>Open File Explorer and find your image file</li>
+                    <li>Right-click the file and click "Copy as path"</li>
+                    <li>Paste here and remove the quotes around it</li>
+                </ol>
+            </div>
+        </div>
+        <input type="text"
+               id="image_path"
+               name="image_path"
+               value="{{ image_path or '' }}"
+               placeholder="/path/to/your/image.jpg"
+               class="form-input">
+        <small class="form-help">Full path to your image file on the server</small>
+    </div>
+
+    <div class="form-group" id="onedrive-input" style="display: none;">
+        {% if session.get('onedrive') %}
+        <label>Select image from OneDrive</label>
+        <div id="od-file-breadcrumb" class="onedrive-breadcrumb">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="browseODFiles('')">Root</button>
+        </div>
+        <div id="od-file-list" class="onedrive-folder-list" style="max-height:250px;"></div>
+        <input type="hidden" name="cloud_source" id="cloud_source" value="">
+        <input type="hidden" name="cloud_item_id" id="cloud_item_id" value="">
+        <input type="hidden" name="cloud_filename" id="cloud_filename" value="">
+        <p id="od-selected-file" style="color: var(--success); font-size: var(--text-sm); margin-top: var(--space-sm); display: none;"></p>
+        {% else %}
+        <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-md);">
+            Connect your OneDrive first via <a href="/oauth/onedrive/start">Connect OneDrive</a>. Requires your own Microsoft OAuth application configuration.
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="form-group" id="sharepoint-input" style="display: none;">
+        {% if session.get('onedrive') %}
+        <label>Select image from SharePoint</label>
+        <div id="sp-file-sites" class="onedrive-folder-list" style="max-height:200px;"></div>
+        <div id="sp-file-folders" class="onedrive-folder-list" style="max-height:250px; display:none; margin-top:var(--space-sm);"></div>
+        <p id="sp-selected-file" style="color: var(--success); font-size: var(--text-sm); margin-top: var(--space-sm); display: none;"></p>
+        {% else %}
+        <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-md);">
+            Connect your Microsoft account first via <a href="/oauth/onedrive/start">Connect Microsoft</a>. Requires your own Microsoft OAuth application configuration.
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+        <div class="prompt-section">
+            <div class="prompt-header">
+                <label>AI Prompt</label>
+                <button type="button" id="edit-prompt-btn" class="btn btn-small btn-secondary">Edit Prompt</button>
+                <button type="button" id="reset-prompt-btn" class="btn btn-small btn-secondary" style="display:none;">Reset to Default</button>
+            </div>
+
+            <div id="prompt-display" class="prompt-display" data-ph-mask>
+                <pre id="prompt-text">{{ used_prompt or default_prompt }}</pre>
+            </div>
+
+            <div id="prompt-edit" class="prompt-edit" style="display:none;">
+                <textarea id="custom_prompt"
+                          name="custom_prompt"
+                          class="prompt-textarea"
+                          placeholder="Enter your custom prompt here...">{{ used_prompt or default_prompt }}</textarea>
+                <div class="prompt-edit-buttons">
+                    <button type="button" id="save-prompt-btn" class="btn btn-small btn-primary">Save Prompt</button>
+                    <button type="button" id="cancel-prompt-btn" class="btn btn-small btn-secondary">Cancel</button>
+                </div>
+            </div>
+
+            <small class="form-help">The prompt sent to the AI. Edit to test different extraction instructions.</small>
+        </div>
+    </div>
+
+    <button type="submit">Transcribe Image</button>
+</form>
+
+{% if error %}
+<div class="alert alert-error"><strong>Error:</strong> {{ error | safe }}</div>
+{% endif %}
+
+{% if result %}
+<div class="results-section">
+    <h2>Transcription Results</h2>
+    <p class="edit-instructions">Review the AI transcription below and make corrections before saving.</p>
+
+    <form action="/save-transcription" method="POST">
+        <div class="edit-grid">
+            <div class="edit-field-group">
+                <label for="edit_title">Title</label>
+                <textarea id="edit_title" name="edit_title" class="edit-textarea" rows="2">{{ result.title or '' }}</textarea>
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_statement_of_responsibility">Statement of Responsibility</label>
+                <textarea id="edit_statement_of_responsibility" name="edit_statement_of_responsibility" class="edit-textarea" rows="2">{{ result.statement_of_responsibility or '' }}</textarea>
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_edition">Edition</label>
+                <input type="text" id="edit_edition" name="edit_edition" value="{{ result.edition or '' }}" class="edit-input">
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_city">City</label>
+                <input type="text" id="edit_city" name="edit_city" value="{{ result.city or '' }}" class="edit-input">
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_publisher_name">Publisher Name</label>
+                <input type="text" id="edit_publisher_name" name="edit_publisher_name" value="{{ result.publisher_name or '' }}" class="edit-input">
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_address">Address</label>
+                <textarea id="edit_address" name="edit_address" class="edit-textarea" rows="2">{{ result.address or '' }}</textarea>
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_plate_number">Plate Number</label>
+                <input type="text" id="edit_plate_number" name="edit_plate_number" value="{{ result.plate_number or '' }}" class="edit-input">
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_date">Date</label>
+                <input type="text" id="edit_date" name="edit_date" value="{{ result.date or '' }}" class="edit-input">
+            </div>
+            <div class="edit-field-group">
+                <label for="edit_image_name">Image Name</label>
+                <input type="text" id="edit_image_name" name="edit_image_name" value="{{ result.image_name or '' }}" class="edit-input readonly-field" readonly>
+            </div>
+        </div>
+
+        <div class="save-section">
+            <button type="submit" class="btn btn-large btn-primary">Save as CSV</button>
+            <button type="button" onclick="resetToOriginal()" class="btn btn-secondary">Reset to AI Values</button>
+        </div>
+    </form>
+
+    <div class="raw-response-section">
+        <h3>Raw API Response</h3>
+        <details>
+            <summary>View raw JSON response</summary>
+            <pre class="raw-response" data-ph-mask>{{ raw_response }}</pre>
+        </details>
+    </div>
+</div>
+{% endif %}
+
+<script>
+const originalValues = {{ (result | tojson) if result else '{}' | safe }};
+const defaultPrompt = {{ (default_prompt | tojson) if default_prompt else '""' | safe }};
+
+function resetToOriginal() {
+    if (!originalValues) return;
+    document.getElementById('edit_title').value = originalValues.title || '';
+    document.getElementById('edit_statement_of_responsibility').value = originalValues.statement_of_responsibility || '';
+    document.getElementById('edit_edition').value = originalValues.edition || '';
+    document.getElementById('edit_city').value = originalValues.city || '';
+    document.getElementById('edit_publisher_name').value = originalValues.publisher_name || '';
+    document.getElementById('edit_address').value = originalValues.address || '';
+    document.getElementById('edit_plate_number').value = originalValues.plate_number || '';
+    document.getElementById('edit_date').value = originalValues.date || '';
+    document.getElementById('edit_image_name').value = originalValues.image_name || '';
+}
+
+function togglePromptEdit() {
+    const displayDiv = document.getElementById('prompt-display');
+    const editDiv = document.getElementById('prompt-edit');
+    const editBtn = document.getElementById('edit-prompt-btn');
+    const resetBtn = document.getElementById('reset-prompt-btn');
+    if (editDiv.style.display === 'none') {
+        displayDiv.style.display = 'none';
+        editDiv.style.display = 'block';
+        editBtn.style.display = 'none';
+        resetBtn.style.display = 'inline-flex';
+    } else {
+        displayDiv.style.display = 'block';
+        editDiv.style.display = 'none';
+        editBtn.style.display = 'inline-flex';
+        resetBtn.style.display = 'none';
+    }
+}
+
+function savePrompt() {
+    document.getElementById('prompt-text').textContent = document.getElementById('custom_prompt').value;
+    togglePromptEdit();
+}
+
+function cancelPromptEdit() {
+    document.getElementById('custom_prompt').value = document.getElementById('prompt-text').textContent;
+    togglePromptEdit();
+}
+
+function resetPromptToDefault() {
+    if (confirm('Reset prompt to default?')) {
+        document.getElementById('custom_prompt').value = defaultPrompt;
+        document.getElementById('prompt-text').textContent = defaultPrompt;
+        togglePromptEdit();
+    }
+}
+
+function switchInput(mode) {
+    const panels = ['upload-input', 'path-input', 'onedrive-input', 'sharepoint-input'];
+    const modes = ['upload', 'path', 'onedrive', 'sharepoint'];
+    panels.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    document.querySelectorAll('.input-toggle .toggle-btn').forEach((btn, i) => btn.classList.toggle('active', modes[i] === mode));
+    const activePanel = document.getElementById(panels[modes.indexOf(mode)]);
+    if (activePanel) activePanel.style.display = '';
+    if (mode === 'upload') { document.getElementById('image_path').value = ''; }
+    if (mode === 'path') { document.getElementById('image_file').value = ''; }
+    if (mode === 'onedrive') { browseODFiles(''); }
+    if (mode === 'sharepoint') { loadSPFileSites(); }
+}
+
+const imageExt = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']);
+
+function browseODFiles(parentId) {
+    const list = document.getElementById('od-file-list');
+    list.innerHTML = '<p style="color:var(--text-tertiary)">Loading...</p>';
+    fetch('/onedrive/browse-all?id=' + encodeURIComponent(parentId), {credentials:'same-origin'})
+    .then(r => r.json()).then(data => {
+        if (data.error) { list.innerHTML = `<p class="alert alert-error">${data.error}</p>`; return; }
+        let html = data.folders.map(f =>
+            `<div class="onedrive-folder-item"><button class="btn btn-secondary btn-sm" onclick="browseODFiles('${f.id}')" style="flex:1;justify-content:flex-start;">📁 ${f.name}</button></div>`
+        ).join('');
+        html += data.images.map(img =>
+            `<div class="onedrive-folder-item"><span style="flex:1;font-size:var(--text-sm);">🖼 ${img.name}</span><button class="btn btn-accent btn-sm" onclick="selectCloudFile('onedrive','${img.id}','${img.name.replace(/'/g, "\\'")}')">Select</button></div>`
+        ).join('');
+        list.innerHTML = html || '<p style="color:var(--text-tertiary)">Empty folder.</p>';
+    }).catch(() => { list.innerHTML = '<p class="alert alert-error">Failed to load</p>'; });
+}
+
+let currentSPFileSiteId = '';
+
+function loadSPFileSites() {
+    const div = document.getElementById('sp-file-sites');
+    div.innerHTML = '<p style="color:var(--text-tertiary)">Loading sites...</p>';
+    document.getElementById('sp-file-folders').style.display = 'none';
+    fetch('/sharepoint/sites', {credentials:'same-origin'}).then(r => r.json()).then(data => {
+        if (data.error || !data.sites.length) { div.innerHTML = '<p style="color:var(--text-tertiary)">No SharePoint sites found.</p>'; return; }
+        div.innerHTML = data.sites.map(s =>
+            `<div class="onedrive-folder-item"><button class="btn btn-secondary btn-sm" onclick="browseSPFiles('${s.id}','')" style="flex:1;justify-content:flex-start;">📁 ${s.name}</button></div>`
+        ).join('');
+    }).catch(() => { div.innerHTML = '<p class="alert alert-error">Failed to load</p>'; });
+}
+
+function browseSPFiles(siteId, parentId) {
+    currentSPFileSiteId = siteId;
+    const div = document.getElementById('sp-file-folders');
+    div.style.display = '';
+    div.innerHTML = '<p style="color:var(--text-tertiary)">Loading...</p>';
+    fetch(`/sharepoint/browse-all?site_id=${encodeURIComponent(siteId)}&id=${encodeURIComponent(parentId)}`, {credentials:'same-origin'})
+    .then(r => r.json()).then(data => {
+        if (data.error) { div.innerHTML = `<p class="alert alert-error">${data.error}</p>`; return; }
+        let html = data.folders.map(f =>
+            `<div class="onedrive-folder-item"><button class="btn btn-secondary btn-sm" onclick="browseSPFiles('${siteId}','${f.id}')" style="flex:1;justify-content:flex-start;">📁 ${f.name}</button></div>`
+        ).join('');
+        html += data.images.map(img =>
+            `<div class="onedrive-folder-item"><span style="flex:1;font-size:var(--text-sm);">🖼 ${img.name}</span><button class="btn btn-accent btn-sm" onclick="selectCloudFile('sharepoint','${siteId}:${img.id}','${img.name.replace(/'/g, "\\'")}')">Select</button></div>`
+        ).join('');
+        div.innerHTML = html || '<p style="color:var(--text-tertiary)">Empty folder.</p>';
+    }).catch(() => { div.innerHTML = '<p class="alert alert-error">Failed to load</p>'; });
+}
+
+function selectCloudFile(source, itemId, filename) {
+    document.getElementById('cloud_source').value = source;
+    document.getElementById('cloud_item_id').value = itemId;
+    document.getElementById('cloud_filename').value = filename;
+    const el = document.getElementById(source === 'onedrive' ? 'od-selected-file' : 'sp-selected-file');
+    el.textContent = 'Selected: ' + filename;
+    el.style.display = '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.edit-textarea').forEach(ta => {
+        ta.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'; });
+        ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px';
+    });
+    document.getElementById('edit-prompt-btn')?.addEventListener('click', togglePromptEdit);
+    document.getElementById('reset-prompt-btn')?.addEventListener('click', resetPromptToDefault);
+    document.getElementById('save-prompt-btn')?.addEventListener('click', savePrompt);
+    document.getElementById('cancel-prompt-btn')?.addEventListener('click', cancelPromptEdit);
+});
+</script>
+{% endblock %}

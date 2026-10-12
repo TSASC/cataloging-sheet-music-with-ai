@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}View Tables | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Publisher Plate Tables</h1>
+    <p class="page-subtitle">View plate number and year mapping tables from a publisher's IMSLP page.</p>
+</div>
+
+<form method="POST">
+    <div class="form-group">
+        <label for="publisher">Publisher Name</label>
+        <input id="publisher" name="publisher" required placeholder="Enter publisher name">
+    </div>
+    <button type="submit">View Tables</button>
+</form>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+{% if publisher %}
+<div style="margin-top: var(--space-2xl);">
+    <h2>Tables for {{ publisher }}</h2>
+    {% if publisher_url %}
+    <p><a href="{{ publisher_url }}" target="_blank">View IMSLP Page</a></p>
+    {% endif %}
+
+    {% for table in tables %}
+    <div class="table-section">
+        <h3>Table {{ table.index }}</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Plate</th>
+                        <th>Year</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table.data %}
+                    <tr>
+                        <td>{{ row.plate }}</td>
+                        <td>{{ row.year }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <p class="result-empty">No plate number tables found.</p>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

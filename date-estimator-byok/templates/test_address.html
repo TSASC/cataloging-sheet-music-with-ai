@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Address Test | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Address Parser</h1>
+    <p class="page-subtitle">Find matching addresses from a publisher's IMSLP page.</p>
+</div>
+
+<form method="POST">
+    <div class="form-group">
+        <label for="publisher">Publisher Name</label>
+        <input name="publisher" id="publisher" value="{{ publisher_input }}" required placeholder="Enter publisher name">
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="address">Address</label>
+            <input name="address" id="address" value="{{ address_input }}" placeholder="Optional">
+        </div>
+        <div class="form-group">
+            <label for="city">City</label>
+            <input name="city" id="city" value="{{ city_input }}" placeholder="Optional">
+        </div>
+    </div>
+    <button type="submit">Check Addresses</button>
+</form>
+
+{% if address_result %}
+<div style="margin-top: var(--space-2xl);">
+    <h2>Results</h2>
+    {% if address_result is string %}
+    <p class="result-empty">{{ address_result }}</p>
+    {% else %}
+    <h3>Found Address Matches</h3>
+    <ul class="address-list">
+    {% for addr in address_result %}
+        <li>
+            <strong>{{ addr.address }}</strong>{% if addr.city %}, {{ addr.city }}{% endif %}
+            <em>{{ addr.date }}</em>
+            <small>{{ addr.description }}</small>
+        </li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Model Comparison | Date Estimator BYOK{% endblock %}
+
+{% block container_class %}container-wide{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Model Comparison</h1>
+    <p class="page-subtitle">Compare Harvard OpenAI and Harvard Gemini transcriptions across selected score images.</p>
+</div>
+
+<p class="form-help">Each selected provider receives the images and prompt for its models. Zero data retention is not guaranteed; review the providers' terms before sending sensitive material.</p>
+
+{% if error %}
+<div class="alert alert-error"><strong>Error:</strong> {{ error }}</div>
+{% endif %}
+
+<div class="section-card">
+    <h2>Source Folder</h2>
+    {% if not folder_path %}
+    <form method="POST">
+        <input type="hidden" name="action" value="set_folder">
+        <div class="form-group">
+            <label for="folder_path">Folder Path</label>
+            <input type="text" id="folder_path" name="folder_path" placeholder="/path/to/your/images/folder" class="form-input" required>
+            <small class="form-help">Use the local folder path that contains the score images.</small>
+        </div>
+        <button type="submit" class="btn btn-primary">Set Folder</button>
+    </form>
+    {% else %}
+    <div class="folder-info">
+        <p><strong>Selected:</strong> <code>{{ folder_path }}</code></p>
+        <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="change_folder">
+            <button type="submit" class="btn btn-secondary">Change Folder</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+{% if folder_path %}
+<div class="section-card">
+    <h2>Prompt</h2>
+    <textarea id="comparison-prompt" class="prompt-textarea" rows="10">{{ default_prompt }}</textarea>
+    <small class="form-help">The selected prompt is sent unchanged to every selected image/model combination.</small>
+</div>
+
+<div class="section-card">
+    <h2>API Key</h2>
+    <div class="comparison-key-grid">
+        {% for option in key_options %}
+        <label class="comparison-key-option">
+            <input type="radio"
+                   name="comparison_key_provider"
+                   value="{{ option.provider }}"
+                   {% if loop.first %}checked{% endif %}>
+            <span>
+                <strong>{{ option.name }}</strong>
+                <small>{{ option.description }}</small>
+            </span>
+        </label>
+        {% endfor %}
+    </div>
+    <p class="form-help">This is sourced from the saved Settings key for Harvard HUIT. The same key is used for every selected Harvard OpenAI and Harvard Gemini model; only the request shape changes.</p>
+</div>
+
+<div class="section-card">
+    <h2>Models</h2>
+    <div class="comparison-model-grid">
+        {% for option in model_options %}
+        <label class="comparison-model-option">
+            <input type="checkbox"
+                   class="comparison-model-check"
+                   value="{{ option.provider }}|{{ option.model }}"
+                   {% if option.default %}checked{% endif %}>
+            <span>
+                <strong>{{ option.model_name }}</strong>
+                <small>{{ option.provider_name }}</small>
+            </span>
+        </label>
+        {% endfor %}
+    </div>
+    <p class="form-help">Both providers use the saved Harvard HUIT key from Settings. Review the output fields before exporting results.</p>
+</div>
+
+<div class="section-card">
+    <h2>Images</h2>
+    <div class="alert alert-warning comparison-credit-warning">
+        Each selected image/model pair makes an API call and consumes API credits. Keep test batches small; this page allows up to {{ max_images }} images per run.
+    </div>
+    <div class="image-controls">
+        <span class="status-indicator" id="comparison-status">Loading images...</span>
+        <button type="button" class="btn btn-small btn-secondary" onclick="refreshComparisonImages()">Refresh</button>
+        <button type="button" class="btn btn-small btn-secondary" onclick="selectVisibleImages()">Select First {{ max_images }}</button>
+        <button type="button" class="btn btn-small btn-secondary" onclick="clearImageSelection()">Clear</button>
+        <span class="auto-refresh-info"><span id="selected-count">0</span> selected</span>
+    </div>
+    <div id="comparison-selection-error" class="alert alert-error" style="display:none;"></div>
+    <div id="comparison-image-list" class="image-list"></div>
+    <div class="comparison-run-bar">
+        <button type="button" id="run-comparison-btn" class="btn btn-large btn-primary" onclick="runComparison()">Run Comparison</button>
+        <span id="comparison-count-label" class="form-help"></span>
+    </div>
+</div>
+
+<div id="comparison-results" class="comparison-results"></div>
+
+<div id="preview-modal" class="modal">
+    <div class="modal-content preview-modal-content">
+        <span class="close" onclick="closePreviewModal()">&times;</span>
+        <h2 id="preview-title">Image Preview</h2>
+        <div class="preview-container">
+            <img id="preview-image" src="" alt="Image preview">
+            <div class="preview-loading">Loading image...</div>
+        </div>
+        <div class="preview-actions">
+            <button type="button" onclick="closePreviewModal()" class="btn btn-secondary">Close</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+const comparisonMaxImages = {{ max_images }};
+const comparisonFetchOpts = { credentials: 'same-origin', headers: { 'Accept': 'application/json' } };
+
+function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    const k = 1024, s = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + s[i];
+}
+
+function selectedImagePaths() {
+    return Array.from(document.querySelectorAll('.comparison-image-check:checked'))
+        .map(cb => cb.dataset.path);
+}
+
+function selectedModels() {
+    return Array.from(document.querySelectorAll('.comparison-model-check:checked')).map(cb => {
+        const [provider, model] = cb.value.split('|');
+        return { provider, model };
+    });
+}
+
+function selectedKeyProvider() {
+    const checked = document.querySelector('input[name="comparison_key_provider"]:checked');
+    return checked ? checked.value : 'harvard';
+}
+
+function updateSelectionState() {
+    const count = selectedImagePaths().length;
+    const modelCount = selectedModels().length;
+    const err = document.getElementById('comparison-selection-error');
+    document.getElementById('selected-count').textContent = count;
+    document.getElementById('comparison-count-label').textContent = count && modelCount
+        ? `${count * modelCount} API call${count * modelCount === 1 ? '' : 's'}`
+        : '';
+    document.querySelectorAll('.comparison-image-check:not(:checked)').forEach(cb => {
+        cb.disabled = count >= comparisonMaxImages;
+    });
+    if (count > comparisonMaxImages) {
+        err.textContent = `Select no more than ${comparisonMaxImages} images.`;
+        err.style.display = 'block';
+    } else {
+        err.style.display = 'none';
+    }
+    const runBtn = document.getElementById('run-comparison-btn');
+    if (runBtn) runBtn.disabled = count === 0 || count > comparisonMaxImages || modelCount === 0;
+}
+
+function refreshComparisonImages() {
+    const status = document.getElementById('comparison-status');
+    const list = document.getElementById('comparison-image-list');
+    if (!status || !list) return;
+    status.textContent = 'Loading images...';
+    status.className = 'status-indicator';
+    fetch('/model-comparison/images', comparisonFetchOpts)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                status.textContent = 'Error: ' + data.error;
+                status.className = 'status-indicator error';
+                list.innerHTML = '';
+                return;
+            }
+            status.textContent = `Found ${data.count} images`;
+            status.className = 'status-indicator success';
+            if (!data.images.length) {
+                list.innerHTML = '<div class="loading">No images found in this folder</div>';
+                updateSelectionState();
+                return;
+            }
+            list.innerHTML = data.images.map(img => {
+                const path = escapeHtml(img.path);
+                const name = escapeHtml(img.name);
+                const thumbSrc = `/preview-image?path=${encodeURIComponent(img.path)}&t=${Date.now()}`;
+                return `<label class="image-item comparison-image-item">
+                    <div class="image-header">
+                        <div>
+                            <input type="checkbox" class="comparison-image-check" data-path="${path}" onchange="updateSelectionState()">
+                            <span class="image-name">${name}</span>
+                        </div>
+                        <div class="image-thumbnail-container" title="Preview">
+                            <img class="image-thumbnail" src="${thumbSrc}" alt="${name}"
+                                 data-path="${path}" data-name="${name}"
+                                 onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+                                 onerror="this.style.display='none'; this.nextElementSibling.textContent='IMG'; this.nextElementSibling.className='thumbnail-error';"
+                                 onclick="event.preventDefault(); previewComparisonImage(this.dataset.path, this.dataset.name);">
+                            <div class="thumbnail-loading">...</div>
+                        </div>
+                    </div>
+                    <div class="image-details">
+                        <div>Modified: ${escapeHtml(img.modified_str)}</div>
+                        <div>Size: ${formatFileSize(img.size)}</div>
+                    </div>
+                </label>`;
+            }).join('');
+            updateSelectionState();
+        })
+        .catch(e => {
+            status.textContent = 'Error loading images';
+            status.className = 'status-indicator error';
+            list.innerHTML = `<div class="alert alert-error">${escapeHtml(e)}</div>`;
+        });
+}
+
+function selectVisibleImages() {
+    document.querySelectorAll('.comparison-image-check').forEach((cb, index) => {
+        cb.checked = index < comparisonMaxImages;
+    });
+    updateSelectionState();
+}
+
+function clearImageSelection() {
+    document.querySelectorAll('.comparison-image-check').forEach(cb => {
+        cb.checked = false;
+        cb.disabled = false;
+    });
+    updateSelectionState();
+}
+
+function runComparison() {
+    const images = selectedImagePaths();
+    const models = selectedModels();
+    if (!images.length || !models.length || images.length > comparisonMaxImages) {
+        updateSelectionState();
+        return;
+    }
+    const callCount = images.length * models.length;
+    if (!confirm(`Run ${callCount} API call${callCount === 1 ? '' : 's'}? This consumes API credits.`)) return;
+    const results = document.getElementById('comparison-results');
+    const btn = document.getElementById('run-comparison-btn');
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+    results.innerHTML = '<div class="section-card"><div class="loading">Running comparisons...</div></div>';
+    fetch('/model-comparison/run', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+            image_paths: images,
+            models,
+            key_provider: selectedKeyProvider(),
+            prompt: document.getElementById('comparison-prompt').value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.textContent = 'Run Comparison';
+        if (data.error) {
+            results.innerHTML = `<div class="alert alert-error">${data.error}</div>`;
+            return;
+        }
+        renderComparisonResults(data);
+    })
+    .catch(e => {
+        btn.disabled = false;
+        btn.textContent = 'Run Comparison';
+        results.innerHTML = `<div class="alert alert-error">Error: ${escapeHtml(e)}</div>`;
+    });
+}
+
+function renderComparisonResults(data) {
+    const fields = data.result_fields || [
+        'title', 'statement_of_responsibility', 'edition', 'city',
+        'publisher_name', 'address', 'plate_number', 'date', 'image_name'
+    ];
+    const labels = {
+        title: 'Title',
+        statement_of_responsibility: 'Statement of responsibility',
+        edition: 'Edition',
+        city: 'City',
+        publisher_name: 'Publisher name',
+        address: 'Address',
+        plate_number: 'Plate number',
+        date: 'Date',
+        image_name: 'Image name'
+    };
+    const html = (data.results || []).map(row => {
+        const cells = (row.cells || []).map(cell => {
+            if (!cell.success) {
+                return `<div class="comparison-result-cell comparison-result-error">
+                    <h3>${escapeHtml(cell.model_name)}</h3>
+                    <p class="form-help">${escapeHtml(cell.provider_name)}</p>
+                    <div class="alert alert-error">${cell.error || 'Comparison failed'}</div>
+                    ${cell.raw_response ? `<details><summary>Raw response</summary><pre class="raw-response">${escapeHtml(cell.raw_response)}</pre></details>` : ''}
+                </div>`;
+            }
+            const fieldRows = fields.map(field => `<tr>
+                <th>${escapeHtml(labels[field] || field)}</th>
+                <td>${escapeHtml((cell.result || {})[field] || '')}</td>
+            </tr>`).join('');
+            return `<div class="comparison-result-cell">
+                <h3>${escapeHtml(cell.model_name)}</h3>
+                <p class="form-help">${escapeHtml(cell.provider_name)}</p>
+                <div class="table-container comparison-field-table">
+                    <table><tbody>${fieldRows}</tbody></table>
+                </div>
+                <details>
+                    <summary>Raw response</summary>
+                    <pre class="raw-response">${escapeHtml(cell.raw_response || '')}</pre>
+                </details>
+            </div>`;
+        }).join('');
+        return `<div class="section-card comparison-image-result">
+            <h2>${escapeHtml(row.image && row.image.name ? row.image.name : 'Image')}</h2>
+            <div class="comparison-result-grid">${cells}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('comparison-results').innerHTML = html || '<div class="section-card"><div class="loading">No results returned</div></div>';
+}
+
+function previewComparisonImage(path, name) {
+    document.getElementById('preview-title').textContent = `Preview: ${name}`;
+    document.querySelector('.preview-loading').style.display = 'block';
+    const img = document.getElementById('preview-image');
+    img.style.display = 'none';
+    img.onload = function() { document.querySelector('.preview-loading').style.display = 'none'; img.style.display = 'block'; };
+    img.onerror = function() { document.querySelector('.preview-loading').textContent = 'Failed to load image'; };
+    img.src = `/preview-image?path=${encodeURIComponent(path)}&t=${Date.now()}`;
+    document.getElementById('preview-modal').style.display = 'block';
+}
+
+function closePreviewModal() {
+    document.getElementById('preview-modal').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.comparison-model-check').forEach(cb => {
+        cb.addEventListener('change', updateSelectionState);
+    });
+    {% if folder_path %}
+    refreshComparisonImages();
+    {% endif %}
+});
+
+window.onclick = function(e) {
+    if (e.target === document.getElementById('preview-modal')) closePreviewModal();
+};
+</script>
+{% endblock %}

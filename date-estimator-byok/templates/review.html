@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Review | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Review Results</h1>
+</div>
+
+{% if current_row %}
+<div class="review-card">
+    <p class="review-meta">Row {{ current_index + 1 }} of {{ total_rows }}</p>
+
+    <div class="review-grid">
+        <div>
+            <div class="review-field">
+                <strong>Publisher</strong>
+                <span id="publisher">{{ current_row.Publisher }}</span>
+            </div>
+            <div class="review-field">
+                <strong>Address</strong>
+                <span id="address">{{ current_row.Address }}</span>
+            </div>
+            <div class="review-field">
+                <strong>City</strong>
+                <span id="city">{{ current_row.City }}</span>
+            </div>
+            <div class="review-field">
+                <strong>Plate Number</strong>
+                <span id="plate">{{ current_row.Plate_number }}</span>
+            </div>
+        </div>
+        <div>
+            <div class="review-field">
+                <strong>Estimated Year</strong>
+                <span id="year">{{ current_row.Estimated_Year }}</span>
+            </div>
+            <div class="review-field">
+                <strong>Date Source</strong>
+                <span id="source">{{ current_row.Date_Source }}</span>
+            </div>
+            <div class="review-field">
+                <strong>IMSLP</strong>
+                {% if current_row.IMSLP_Link.startswith('http') %}
+                <a href="{{ current_row.IMSLP_Link }}" target="_blank">
+                    {% if 'Music_Publishers#' in current_row.IMSLP_Link %}View in Publishers Table{% else %}Open IMSLP Page{% endif %}
+                </a>
+                {% else %}
+                <span style="color: var(--text-tertiary);">N/A</span> &mdash;
+                <a href="https://imslp.org/wiki/IMSLP:Music_Publishers" target="_blank">search IMSLP</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="analysis-section">
+        <h3>Date Estimation Analysis</h3>
+        <ul>
+            <li><strong>Main publisher table:</strong> {{ current_row.date_estimation_analysis.main_table }}</li>
+            <li><strong>Imprint match:</strong>
+                {% if current_row.date_estimation_analysis.imprint != "No close imprint match" %}
+                    {{ current_row.date_estimation_analysis.imprint }}
+                {% else %}No close imprint match{% endif %}
+            </li>
+            <li><strong>Address match:</strong>
+                {% if current_row.date_estimation_analysis.address != "No date extracted" %}
+                    {{ current_row.date_estimation_analysis.address }}
+                {% else %}No date extracted{% endif %}
+            </li>
+            <li><strong>Plate number bounds:</strong>
+                {% if current_row.date_estimation_analysis.plate != "Not enough information on table" %}
+                    {{ current_row.date_estimation_analysis.plate }}
+                {% else %}Not enough information on table{% endif %}
+            </li>
+        </ul>
+    </div>
+
+    <div id="editForm" style="display: none;" class="edit-form-section">
+        <h3>Edit Row Data</h3>
+        <form id="rowEditForm" method="POST" action="{{ url_for('save_review_edit') }}">
+            <input type="hidden" name="row_index" value="{{ current_index }}">
+            <div class="form-group">
+                <label>Publisher</label>
+                <input type="text" name="publisher" value="{{ current_row.Publisher }}">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <input type="text" name="address" value="{{ current_row.Address }}">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" name="city" value="{{ current_row.City }}">
+                </div>
+                <div class="form-group">
+                    <label>Plate Number</label>
+                    <input type="text" name="plate_number" value="{{ current_row.Plate_number }}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Select Date</label>
+                <select name="selected_date">
+                    {% for date in current_row.Found_Dates.split('\n• ')[1:] %}
+                    <option value="{{ date }}">{{ date }}</option>
+                    {% endfor %}
+                    <option value="custom">Enter custom date...</option>
+                </select>
+            </div>
+            <div id="customDateInput" style="display: none;" class="form-group">
+                <label>Custom Date</label>
+                <input type="text" name="custom_date" placeholder="Enter custom date">
+            </div>
+            <div style="margin-bottom: var(--space-lg); display: flex; align-items: center; gap: var(--space-sm);">
+                <input type="checkbox" name="rerun" id="rerunCheck" value="true" checked style="width: auto;">
+                <label for="rerunCheck" style="margin: 0; text-transform: none; letter-spacing: normal; font-size: var(--text-sm); font-weight: 400;">Rerun estimation with updated data</label>
+            </div>
+            <div class="action-buttons">
+                <button type="submit" class="btn btn-primary">Save & Rerun</button>
+                <button type="button" class="btn btn-secondary" onclick="toggleEditForm()">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="previousRow()" {% if current_index == 0 %}disabled{% endif %}>Back</button>
+        {% if current_index + 1 == total_rows %}
+        <button class="btn btn-success" onclick="nextRow('agree')">Finish and Download</button>
+        {% else %}
+        <button class="btn btn-success" onclick="nextRow('agree')">Agree & Next</button>
+        {% endif %}
+        <button class="btn btn-warning" onclick="nextRow('later')">Change Later</button>
+        <button class="btn btn-info" onclick="toggleEditForm()">Edit</button>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">No rows to review. Please upload a file first.</div>
+{% endif %}
+
+<script>
+function toggleEditForm() {
+    const form = document.getElementById('editForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function nextRow(action) {
+    fetch('{{ url_for("next_review_row") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ current_index: {{ current_index }}, action: action })
+    })
+    .then(r => r.json())
+    .then(data => { data.redirect ? window.location.href = data.redirect : location.reload(); });
+}
+
+function previousRow() {
+    fetch('{{ url_for("next_review_row") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ current_index: {{ current_index }}, action: 'back' })
+    })
+    .then(r => r.json())
+    .then(data => { data.redirect ? window.location.href = data.redirect : location.reload(); });
+}
+
+document.querySelector('select[name="selected_date"]').addEventListener('change', function(e) {
+    document.getElementById('customDateInput').style.display = e.target.value === 'custom' ? 'block' : 'none';
+});
+</script>
+{% endblock %}

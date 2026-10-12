@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Date Estimator BYOK{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-top">
+            <a href="/" class="brand">Date Estimator BYOK</a>
+            <button class="sidebar-collapse-btn" aria-label="Collapse sidebar">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6l6-4.5L14 6v7.5a1 1 0 01-1 1H3a1 1 0 01-1-1V6z"/><path d="M6 14.5V8h4v6.5"/></svg>Home</a>
+            <a href="/batch-transcription" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="0.5"/><rect x="9" y="2" width="5" height="5" rx="0.5"/><rect x="2" y="9" width="5" height="5" rx="0.5"/><rect x="9" y="9" width="5" height="5" rx="0.5"/></svg>Batch Transcribe</a>
+            <a href="/model-comparison" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h5v8H2z"/><path d="M9 4h5v8H9z"/><path d="M7 8h2"/></svg>Compare Models</a>
+            <a href="/search" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>Date Search</a>
+            <a href="/upload" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2m0 0L5 5m3-3l3 3"/><path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3"/></svg>Excel Upload</a>
+            <a href="/image-transcription" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="1"/><circle cx="5.5" cy="6.5" r="1.5"/><path d="M1.5 11l3.5-3 2.5 2 3-3.5L14.5 11"/></svg>Image Transcribe</a>
+            <div class="sidebar-divider"></div>
+            <a href="/test-match" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h8M4 4h8M4 12h5"/></svg>Publisher Match</a>
+            <a href="/test-similarity" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="7" r="4"/><circle cx="10" cy="9" r="4"/></svg>Name Similarity</a>
+            <a href="/test-imprint" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10v12H3z"/><path d="M6 5h4M6 8h4M6 11h2"/></svg>Imprint Lookup</a>
+            <a href="/test-address" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6c0 3.5 4.5 8.5 4.5 8.5s4.5-5 4.5-8.5c0-2.5-2-4.5-4.5-4.5z"/><circle cx="8" cy="6" r="1.5"/></svg>Address Lookup</a>
+            <a href="/formula-generator" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 3l8 10M12 3L4 13"/><path d="M2 8h12"/></svg>Date Formulas</a>
+            <a href="{{ url_for('view_tables') }}" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M2 6h12M2 10h12M6 2v12"/></svg>Plate Tables</a>
+        </nav>
+        <div class="sidebar-bottom">
+            <a href="/settings" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10a2 2 0 100-4 2 2 0 000 4z"/><path d="M13.4 10a1.2 1.2 0 00.2 1.3l.04.04a1.4 1.4 0 11-2 2l-.04-.04a1.2 1.2 0 00-1.3-.2 1.2 1.2 0 00-.7 1.1v.1a1.4 1.4 0 11-2.8 0v-.06a1.2 1.2 0 00-.8-1.1 1.2 1.2 0 00-1.3.2l-.04.04a1.4 1.4 0 11-2-2l.04-.04a1.2 1.2 0 00.2-1.3 1.2 1.2 0 00-1.1-.7h-.1a1.4 1.4 0 110-2.8h.06a1.2 1.2 0 001.1-.8 1.2 1.2 0 00-.2-1.3l-.04-.04a1.4 1.4 0 112-2l.04.04a1.2 1.2 0 001.3.2h.06a1.2 1.2 0 00.7-1.1v-.1a1.4 1.4 0 112.8 0v.06a1.2 1.2 0 00.8 1.1 1.2 1.2 0 001.3-.2l.04-.04a1.4 1.4 0 112 2l-.04.04a1.2 1.2 0 00-.2 1.3v.06a1.2 1.2 0 001.1.7h.1a1.4 1.4 0 110 2.8h-.06a1.2 1.2 0 00-1.1.8z"/></svg>Settings</a>
+            <a href="/user-guide" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.5a2 2 0 013.9.5c0 1-1.4 1.5-1.9 2"/><circle cx="8" cy="12" r="0.5" fill="currentColor"/></svg>User Guide</a>
+            <a href="/codebase_documentation" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h4l2 1.5L10 3h4v10h-4l-2 1.5L6 13H2V3z"/></svg>Docs</a>
+            <a href="https://imslp.org/wiki/IMSLP:Music_Publishers" target="_blank" class="sidebar-link"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3H3v10h10v-3"/><path d="M8 2h6v6"/><path d="M14 2L7 9"/></svg>IMSLP Wiki</a>
+        </div>
+    </aside>
+
+    <button class="sidebar-toggle" aria-label="Toggle sidebar">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    <div class="sidebar-overlay"></div>
+    <main class="main-content {% block container_class %}{% endblock %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        const collapseBtn = document.querySelector('.sidebar-collapse-btn');
+        const mobileToggle = document.querySelector('.sidebar-toggle');
+
+        collapseBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
+        });
+
+        mobileToggle.addEventListener('click', function() {
+            const open = sidebar.classList.toggle('open');
+            overlay.classList.toggle('open', open);
+            this.classList.toggle('active', open);
+        });
+
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+            mobileToggle.classList.remove('active');
+        });
+    </script>
+</body>
+</html>

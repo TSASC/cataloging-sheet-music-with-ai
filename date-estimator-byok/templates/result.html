@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Result | Date Estimator BYOK{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Estimation Result</h1>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% else %}
+
+{% if result.estimated_year %}
+<div class="result-primary">
+    <span class="result-label">Estimated Date</span>
+    <span class="result-value">{{ result.estimated_year }}</span>
+    <span class="result-source">Based on: {{ result.source }}</span>
+</div>
+{% else %}
+<p class="result-empty">Could not determine a publication date from the available data.</p>
+{% endif %}
+
+<div class="result-details">
+    <dl class="detail-list">
+        <div class="detail-item">
+            <dt>Publisher</dt>
+            <dd>{{ result.publisher }}</dd>
+        </div>
+        {% if result.link %}
+        <div class="detail-item">
+            <dt>IMSLP Page</dt>
+            <dd><a href="{{ result.link }}" target="_blank">{{ result.link }}</a></dd>
+        </div>
+        {% endif %}
+        {% if result.plate %}
+        <div class="detail-item">
+            <dt>Plate Number</dt>
+            <dd>{{ result.plate }}</dd>
+        </div>
+        {% endif %}
+        {% if result.address %}
+        <div class="detail-item">
+            <dt>Address</dt>
+            <dd>{{ result.address }}</dd>
+        </div>
+        {% endif %}
+        {% if result.get('city', '') %}
+        <div class="detail-item">
+            <dt>City</dt>
+            <dd>{{ result.city }}</dd>
+        </div>
+        {% endif %}
+    </dl>
+</div>
+
+{% if result.all_ranges %}
+<div class="result-ranges">
+    <h2>All Found Date Ranges</h2>
+    <ul class="range-list">
+    {% for range in result.all_ranges %}
+        <li><strong>{{ range.range }}</strong> <span class="range-source">{{ range.source }}</span></li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if result.address_matches %}
+<div class="result-addresses">
+    <h2>Matching Addresses</h2>
+    <ul class="address-list">
+    {% for addr in result.address_matches %}
+        <li>
+            <strong>{{ addr.address }}</strong>{% if addr.city %}, {{ addr.city }}{% endif %}
+            <em>{{ addr.date }}</em>
+            <small>{{ addr.description }}</small>
+        </li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% endif %}
+
+<div style="margin-top: var(--space-2xl);">
+    <a href="/search" class="btn btn-secondary">New Search</a>
+</div>
+{% endblock %}
